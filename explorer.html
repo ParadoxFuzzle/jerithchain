@@ -55,6 +55,7 @@
     <h1>⛏ Jerith<span class="ticker">Coin</span> Explorer</h1>
     <span class="sub">JerithChain · PoW · Ed25519</span>
     <span class="live" id="live">live</span>
+    <span class="sub" id="src-note">connecting…</span>
   </header>
 
   <div class="grid" id="stats">
@@ -83,42 +84,75 @@
 </div>
 
 <script>
-// Data sources, in order: a live explorer API if present (same origin :8303,
-// or window.JERITH_API), else the static chain snapshot next to this page
-// (refreshed every 5 minutes by the node's snapshot publisher).
-const LIVE_API = window.JERITH_API || (location.origin.includes("8303") ? location.origin : null);
-const SNAP_URL = window.JERITH_SNAPSHOT || "./snapshot.json";
+// Data sources, in order:
+//   1. A live explorer API — ONLY when this page is actually being served by
+//      the explorer itself (same-origin port 8303, or an explicit
+//      window.JERITH_API override). We never probe localhost/127.0.0.1 from a
+//      public page: a visitor's browser must not be asked to reach into
+//      someone's (or their own) local node.
+//   2. The network snapshot: ./snapshot.json next to this page (refreshed
+//      every 5 minutes by the node's snapshot publisher), falling back to the
+//      GitHub Pages copy if the local one is missing.
+const LIVE_API = window.JERITH_API ||
+  (location.protocol.startsWith("http") && location.port === "8303" ? location.origin : null);
+const SNAP_URLS = window.JERITH_SNAPSHOT
+  ? [window.JERITH_SNAPSHOT]
+  : ["./snapshot.json",
+     "https://paradoxfuzzle.github.io/jerithchain/snapshot.json"];
 const uj = (n) => (n/1e6).toLocaleString(undefined,{maximumFractionDigits:2});
 const age = (ts) => { const s = Math.max(0, Math.floor(Date.now()/1000 - ts));
   if (s < 60) return s + "s"; if (s < 3600) return Math.floor(s/60) + "m";
   if (s < 86400) return Math.floor(s/3600) + "h"; return Math.floor(s/86400) + "d"; };
 const short = (h) => h ? h.slice(0,10) + "…" + h.slice(-6) : "—";
 
-let SNAP = null;
-function snapResolve(path) {
-  if (path.startsWith("/api/status")) return SNAP.status;
+function snapResolve(S, path) {
+  if (path.startsWith("/api/status")) return S.status;
   if (path.startsWith("/api/blocks")) {
     const u = new URLSearchParams((path.split("?")[1] || ""));
-    const lim = Math.max(1, Math.min(parseInt(u.get("limit") || "20", 10), SNAP.blocks.length));
+    const lim = Math.max(1, Math.min(parseInt(u.get("limit") || "20", 10), S.blocks.length));
     const off = parseInt(u.get("offset") || "0", 10);
-    return { blocks: SNAP.blocks.slice(off, off + lim) };
+    return { blocks: S.blocks.slice(off, off + lim) };
   }
   let m = path.match(/^\/api\/block\/(\d+)$/);
-  if (m) { const b = SNAP.blocks.find(b => b.height === +m[1]); if (!b) throw new Error(404); return b; }
+  if (m) { const b = S.blocks.find(b => b.height === +m[1]); if (!b) throw new Error(404); return b; }
   m = path.match(/^\/api\/tx\/([0-9a-f]{8,64})$/);
-  if (m) { for (const b of SNAP.blocks) for (const tx of (b.transactions || []))
+  if (m) { for (const b of S.blocks) for (const tx of (b.transactions || []))
       if (tx.txid === m[1]) return tx; throw new Error(404); }
   m = path.match(/^\/api\/address\/(.+)$/);
-  if (m) { const rec = (SNAP.addresses || {})[m[1]]; if (!rec) throw new Error(404);
+  if (m) { const rec = (S.addresses || {})[m[1]]; if (!rec) throw new Error(404);
     return Object.assign({ address: m[1] }, rec); }
   throw new Error("bad path");
 }
+let SNAP = null;
+let snapPromise = null;
+function markSource(txt) {
+  const el = document.getElementById("src-note");
+  if (el) el.textContent = txt;
+}
+async function loadSnapshot() {
+  if (SNAP) return SNAP;
+  if (!snapPromise) {
+    snapPromise = (async () => {
+      let lastErr = null;
+      for (const url of SNAP_URLS) {
+        try {
+          const r = await fetch(url, { cache: "no-store" });
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          SNAP = await r.json();
+          markSource(url.includes("github.io") ? "network snapshot (github.pages)" : "network snapshot (this site)");
+          return SNAP;
+        } catch (e) { lastErr = e; }
+      }
+      throw lastErr || new Error("no snapshot source reachable");
+    })();
+  }
+  return snapPromise;
+}
 async function j(path) {
   if (LIVE_API) {
-    try { const r = await fetch(LIVE_API + path); if (r.ok) return await r.json(); } catch (e) {}
+    try { const r = await fetch(LIVE_API + path); if (r.ok) { markSource("live node api"); return await r.json(); } } catch (e) {}
   }
-  if (!SNAP) SNAP = await (await fetch(SNAP_URL, { cache: "no-store" })).json();
-  return snapResolve(path);
+  return snapResolve(await loadSnapshot(), path);
 }
 
 async function refresh() {
