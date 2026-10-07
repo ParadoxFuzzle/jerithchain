@@ -173,7 +173,7 @@ async function refresh() {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td><a href="#" onclick="show('block',${blk.height});return false">${blk.height}</a></td>
         <td class="mono hash" title="${blk.hash}">${short(blk.hash)}</td>
-        <td>${blk.txs}</td><td>${uj(blk.reward_uj)} JER</td><td class="muted">${age(blk.timestamp)} ago</td>`;
+        <td>${blk.txs ?? (blk.transactions ? blk.transactions.length : 0)}</td><td>${uj(blk.reward_uj)} JER</td><td class="muted">${age(blk.timestamp)} ago</td>`;
       tb.appendChild(tr);
     }
     document.getElementById("live").style.opacity = 1;
