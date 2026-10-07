@@ -1,0 +1,19 @@
+# Follower: mirror another node's chain read-only (run on any second machine).
+# Needs: the host's ca.pem + sync token in keys/.
+[Unit]
+Description=JerithChain follower (read-only mirror)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/jerithchain
+Environment=JERITH_HOST_TARGET=<host-ip>:8301
+Environment=JERITH_FOLLOWER_ID=my-follower
+Environment=JERITH_SYNC_TLS_CA=%h/jerithchain/keys/ca.pem
+Environment=JERITH_SYNC_TOKEN_FILE=%h/jerithchain/keys/sync.token
+ExecStart=/usr/bin/python3 %h/jerithchain/jerith_follow.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

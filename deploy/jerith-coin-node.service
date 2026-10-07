@@ -1,0 +1,18 @@
+# Main node: ledger + wallets + mining API. Run as your own user (systemd --user)
+# or adapt for a system unit. The chain + keys live in ./data and ./keys next to
+# the code (override with JERITH_DATA_DIR / JERITH_KEYS_DIR).
+[Unit]
+Description=Jerith Coin node (JerithChain ledger + wallet + mining API)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/jerithchain/jerith_node.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+Environment=JERITH_PORT=8300
+
+[Install]
+WantedBy=default.target

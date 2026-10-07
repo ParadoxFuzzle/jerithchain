@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package jerithsync;
+
+// Server-streaming chain topology: host pushes blocks to followers.
+service ChainSync {
+  // Stream all blocks from `from_height` onward, then stay open and push
+  // new blocks as they are appended. Reconnect-safe: followers track last
+  // height and re-request with from_height = last+1.
+  rpc StreamBlocks(SyncRequest) returns (stream SyncBlock);
+  // One-shot status for monitoring/lag checks.
+  rpc GetStatus(SyncStatusRequest) returns (SyncStatus);
+}
+
+message SyncRequest {
+  uint64 from_height = 1;   // inclusive; 0 = full chain from genesis
+  string follower_id = 2;   // informational
+}
+
+message SyncBlock {
+  uint64 height = 1;
+  string hash = 2;
+  string prev_hash = 3;
+  int64 timestamp = 4;
+  string miner = 5;
+  uint64 reward_uj = 6;
+  uint64 nonce = 7;
+  uint32 difficulty = 8;
+  repeated bytes tx_raw = 9;  // transaction dicts serialized as JSON bytes
+}
+
+message SyncStatusRequest {}
+
+message SyncStatus {
+  uint64 height = 1;
+  string tip_hash = 2;
+  uint32 difficulty = 3;
+  int64 uptime_s = 4;
+}

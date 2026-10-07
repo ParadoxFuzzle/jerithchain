@@ -1,0 +1,15 @@
+# Read-only public explorer API (:8303). Publish via your reverse proxy.
+[Unit]
+Description=JerithChain explorer API
+After=jerith-coin-node.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/jerithchain/jerith_explorer.py
+Restart=on-failure
+RestartSec=5
+Environment=JERITH_EXPLORER_PORT=8303
+Environment=JERITH_SITE_DIR=%h/jerithchain/website
+
+[Install]
+WantedBy=default.target

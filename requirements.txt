@@ -1,0 +1,7 @@
+fastapi>=0.110
+uvicorn>=0.29
+pynacl>=1.5
+cryptography>=42
+grpcio>=1.71
+protobuf>=5.29
+pytest>=8

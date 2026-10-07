@@ -1,0 +1,22 @@
+# Streams your chain to followers over gRPC TLS (:8301).
+# Generate a self-signed cert + token:
+#   openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes \
+#     -keyout keys/sync-server.key -out keys/sync-server.pem \
+#     -subj "/CN=jerithchain-sync" -addext "subjectAltName=IP:<your-lan-ip>,DNS:localhost"
+#   openssl rand -hex 24 > keys/sync.token   # share with your followers
+[Unit]
+Description=JerithChain gRPC sync server
+After=jerith-coin-node.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/jerithchain/jerith_sync_server.py
+Restart=on-failure
+RestartSec=5
+Environment=JERITH_SYNC_PORT=8301
+Environment=JERITH_SYNC_TLS_CERT=%h/jerithchain/keys/sync-server.pem
+Environment=JERITH_SYNC_TLS_KEY=%h/jerithchain/keys/sync-server.key
+Environment=JERITH_SYNC_TOKEN_FILE=%h/jerithchain/keys/sync.token
+
+[Install]
+WantedBy=default.target

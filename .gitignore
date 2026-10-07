@@ -1,0 +1,9 @@
+data/
+keys/
+data-follow/
+*.db
+*.db-wal
+*.db-shm
+__pycache__/
+*.pyc
+.venv/
