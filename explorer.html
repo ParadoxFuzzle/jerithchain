@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>JerithChain Explorer — Jerith Coin (JER)</title>
+<link rel="icon" type="image/png" href="jer-coin-logo.png">
 <meta property="og:title" content="JerithChain Explorer">
 <meta property="og:description" content="Live Jerith Coin (JER) chain stats: blocks, mining, supply.">
 <style>
@@ -13,7 +14,9 @@
   body { background:var(--bg); color:var(--txt);
          font:15px/1.5 ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif; min-height:100vh; }
   .wrap { max-width:980px; margin:0 auto; padding:28px 20px 60px; }
-  header { display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:22px; }
+  .logo { height:52px; width:52px; object-fit:contain; border-radius:10px; flex:none; }
+  h1 .logo { height:52px; vertical-align:middle; margin-right:8px; }
   h1 { font-size:26px; letter-spacing:.5px; }
   h1 .ticker { color:var(--acc); }
   .sub { color:var(--dim); font-size:13px; }
@@ -52,7 +55,7 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>⛏ Jerith<span class="ticker">Coin</span> Explorer</h1>
+    <h1><img class="logo" src="jer-coin-logo.png" alt="Jerith Coin logo">Jerith<span class="ticker">Coin</span> Explorer</h1>
     <span class="sub">JerithChain · PoW · Ed25519</span>
     <span class="live" id="live">live</span>
     <span class="sub" id="src-note">connecting…</span>
