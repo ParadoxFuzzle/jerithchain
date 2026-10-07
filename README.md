@@ -6,6 +6,7 @@ chance to mine. This repository is the **full node software**: run your own
 node, mirror the chain, or host an explorer.
 
 - **Live explorer:** https://paradoxfuzzle.github.io/jerithchain/ (auto-updating snapshot)
+- **Whitepaper:** [technical specification v1.0](website/whitepaper.html) ([PDF](website/jerith-coin-whitepaper.pdf))
 - **Coin:** Jerith Coin (JER) · max supply 1,000,000,000 · premine 200,000,000 to the founder
 - **Consensus:** SHA-256 proof-of-work (18 bits, retargets every 20 blocks toward 60s blocks)
 - **Transactions:** Ed25519-signed, every balance change is on-chain
