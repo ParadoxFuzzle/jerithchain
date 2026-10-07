@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jerith Coin (JER) — Technical Whitepaper</title>
+<meta name="description" content="Jerith Coin (JER): a social proof-of-work currency mined through conversation with the Jerith AI agent. Technical whitepaper — architecture, consensus, tokenomics, security.">
+<style>
+  :root{
+    --bg:#0b0e14;--card:#121722;--line:#1f2937;--txt:#e5e7eb;--dim:#94a3b8;
+    --acc:#f59e0b;--acc2:#38bdf8;--ok:#34d399;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font:16px/1.7 Georgia,'Times New Roman',serif;}
+  .sheet{max-width:820px;margin:0 auto;padding:56px 28px 80px;}
+  a{color:var(--acc2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3,.meta,.wp-badge{font-family:ui-sans-serif,system-ui,'Segoe UI',Roboto,sans-serif}
+  header.wp{border-bottom:1px solid var(--line);padding-bottom:28px;margin-bottom:36px}
+  .wp-badge{display:inline-block;font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--acc);border:1px solid var(--acc);border-radius:99px;padding:4px 12px;margin-bottom:18px}
+  h1{font-size:34px;line-height:1.2;letter-spacing:.3px}
+  .subtitle{color:var(--dim);margin-top:10px;font-size:16px}
+  .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--dim);font-size:13px;margin-top:16px}
+  .meta b{color:var(--txt)}
+  h2{font-size:21px;margin:44px 0 14px;color:var(--txt);
+     border-left:3px solid var(--acc);padding-left:12px}
+  h3{font-size:16px;margin:24px 0 8px;color:var(--acc2)}
+  p{margin:12px 0;color:#cbd5e1}
+  ul{margin:10px 0 14px 22px;color:#cbd5e1}
+  li{margin:5px 0}
+  strong{color:var(--txt)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:26px 0}
+  .toc b{font-family:ui-sans-serif,system-ui,sans-serif;font-size:12px;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--dim)}
+  .toc ol{margin:10px 0 0 20px;columns:2;column-gap:36px}
+  .toc li{margin:4px 0;font-family:ui-sans-serif,system-ui,sans-serif;font-size:14px}
+  table{width:100%;border-collapse:collapse;margin:14px 0 20px;font-size:14px}
+  th{text-align:left;font-family:ui-sans-serif,system-ui,sans-serif;font-size:11px;
+     text-transform:uppercase;letter-spacing:1px;color:var(--dim);
+     padding:9px 12px;border-bottom:1px solid var(--line)}
+  td{padding:9px 12px;border-bottom:1px solid var(--line);color:#cbd5e1;
+     font-family:ui-sans-serif,system-ui,sans-serif;font-size:13.5px}
+  tr:last-child td{border-bottom:0}
+  td:first-child{color:var(--txt)}
+  .callout{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--acc);
+    border-radius:10px;padding:14px 18px;margin:18px 0;font-size:14.5px}
+  .callout p{margin:6px 0}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
+    background:#0d1420;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:#a5f3fc}
+  pre{background:#0d1420;border:1px solid var(--line);border-radius:10px;padding:14px 16px;
+    overflow-x:auto;margin:12px 0}
+  pre code{border:0;background:none;padding:0}
+  .formula{font-family:ui-monospace,Menlo,monospace;color:#a5f3fc}
+  .wpfoot{margin-top:56px;padding-top:22px;border-top:1px solid var(--line);
+    color:var(--dim);font-size:13px}
+  .wpfoot a{font-family:ui-sans-serif,system-ui,sans-serif}
+  .disclaimer{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.35);
+    border-radius:10px;padding:16px 18px;margin-top:26px;font-size:13.5px;color:#fcd34d}
+  .disclaimer strong{color:#fbbf24}
+  @media print{
+    body{background:#fff;color:#111;font-size:11.5pt}
+    .sheet{max-width:100%;padding:0}
+    h2{border-left-color:#b45309;color:#111}
+    h3{color:#1d4ed8}
+    p,ul,li,td{color:#222}
+    th{color:#555}
+    strong{color:#000}
+    .toc,.callout,pre,code{background:#f6f7f9;border-color:#ddd;color:#111}
+    .formula{color:#0369a1}
+    code{color:#0369a1}
+    a{color:#1d4ed8;text-decoration:none}
+    .no-print{display:none}
+    .wp-badge{color:#b45309;border-color:#b45309}
+    section{page-break-inside:avoid}
+    .disclaimer{background:#fffbeb;border-color:#f59e0b;color:#92400e}
+    .disclaimer strong{color:#92400e}
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+<header class="wp">
+  <span class="wp-badge">Technical Whitepaper · v1.0</span>
+  <h1>Jerith Coin (JER)<br>A Social Proof-of-Work Currency for the AI Era</h1>
+  <p class="subtitle">The native asset of JerithChain — mined through conversation with the Jerith AI agent, secured by SHA-256 proof-of-work, and settled entirely on-chain.</p>
+  <div class="meta">
+    <span><b>Chain:</b> JerithChain</span>
+    <span><b>Ticker:</b> JER</span>
+    <span><b>Consensus:</b> Nakamoto PoW</span>
+    <span><b>Max supply:</b> 1,000,000,000 JER</span>
+    <span><b>Status:</b> Live · v1.0 · October 2026</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <b>Contents</b>
+  <ol>
+    <li><a href="#abstract">Abstract</a></li>
+    <li><a href="#motivation">Motivation</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#consensus">Consensus &amp; Block Structure</a></li>
+    <li><a href="#tokenomics">Tokenomics</a></li>
+    <li><a href="#mining">Mining Model</a></li>
+    <li><a href="#accounts">Accounts, Wallets &amp; Security</a></li>
+    <li><a href="#network">Network Topology &amp; Synchronization</a></li>
+    <li><a href="#privacy">Transparency &amp; Privacy</a></li>
+    <li><a href="#security-discussion">Security Discussion</a></li>
+    <li><a href="#implementation">Implementation Status</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+    <li><a href="#references">References &amp; Resources</a></li>
+  </ol>
+</nav>
+
+<section id="abstract">
+  <h2>1 · Abstract</h2>
+  <p>
+    <strong>Jerith Coin (JER)</strong> is a proof-of-work digital asset whose issuance is bound to a
+    social activity: conversation with an AI agent. Every message sent to <strong>Jerith</strong> — a
+    self-hosted assistant operating on the Discord platform — carries a small probability of minting a
+    block reward for the sender, and users may deliberately mine for the full block reward. The chain
+    itself is deliberately conventional: SHA-256 <em>Nakamoto</em> proof-of-work, Ed25519-signed
+    transactions, an account/balance ledger derived exclusively from applied transactions, and a
+    difficulty retargeting rule bounded in both directions. The design goal is a community currency
+    with an issuance curve driven by engagement rather than speculation, while inheriting the
+    well-understood security properties of a single-chain PoW system.
+  </p>
+  <p>
+    JerithChain is fully implemented and running. The reference node, wallet tooling, gRPC-based
+    block synchronization, a public explorer, and a 23-case test suite are open source under the MIT
+    license.
+  </p>
+</section>
+
+<section id="motivation">
+  <h2>2 · Motivation</h2>
+  <p>
+    Traditional mineable coins reward capital (ASICs) or idle hardware (GPUs). Proof-of-stake systems
+    reward capital directly. Both mechanisms concentrate issuance among their largest participants and
+    give non-technical users no role in securing the network.
+  </p>
+  <p>
+    Jerith inverts the premise: the scarce resource being spent is <strong>meaningful participation</strong>
+    in an AI-assisted creative community. The chain uses proof-of-work for security and final settlement,
+    but the <em>right to submit</em> proof-of-work is metered socially — through rate limits tied to a
+    person's Discord identity. This yields three properties:
+  </p>
+  <ul>
+    <li><strong>Fair engagement curve.</strong> Rewards track conversation and contribution, not hashrate. A casual user on modest hardware earns alongside the operator's own fleet.</li>
+    <li><strong>Sybil resistance by identity.</strong> One wallet per verified platform identity, with platform-side moderation as an additional lever unavailable to permissionless chains.</li>
+    <li><strong>Honest plumbing.</strong> The monetary core avoids experimental cryptography. Consensus, signatures, and validation are deliberately boring and auditable; innovation lives in the issuance policy, not the trust model.</li>
+  </ul>
+</section>
+
+<section id="architecture">
+  <h2>3 · Architecture</h2>
+  <p>
+    JerithChain is a single-chain, UTXO-free (account/balance) ledger written in Python. A full node is
+    a single service exposing a JSON/HTTP API on loopback; block production, validation, and storage
+    are performed in one process with serialized writes.
+  </p>
+  <pre><code>Discord user ──▶ Jerith agent (OpenClaw)
+                   ├── per-message mining hook (probability-gated)
+                   └── skill commands (/balance, /wallet, /mine, transfers)
+                         │
+                         ▼
+              Node API (127.0.0.1:8300, bearer token)
+                ├── jerith_core.py     txs · PoW · ledger · retargeting
+                ├── jerith_wallet.py   key encryption · password wrap · TOTP
+                └── SQLite ledger (WAL)
+                         │
+       ┌─────────────────┴──────────────────┐
+       ▼                                    ▼
+gRPC sync server (:8301, TLS+token)   Explorer API (:8303, read-only)
+       │                                    │
+  read-only followers                public explorer / snapshots</code></pre>
+  <h3>3.1 Data model</h3>
+  <ul>
+    <li><strong>Transaction.</strong> <span class="formula">{kind, sender, recipient, amount, fee, nonce, timestamp, memo, vk, signature}</span>. <code>kind ∈ {spend, mine, premine}</code>; only <code>spend</code> may be user-submitted. The verify key <code>vk</code> must hash-derive to <code>sender</code>, binding the account identity to the signing key.</li>
+    <li><strong>Block.</strong> <span class="formula">{height, prev_hash, timestamp, txs[], miner, reward, nonce}</span>; the block hash is <code>SHA-256</code> over the canonical JSON serialization of these fields.</li>
+    <li><strong>State.</strong> Balances and nonces are stored per address and recomputed only from applied transactions; the ledger is the sole source of truth.</li>
+  </ul>
+</section>
+
+<section id="consensus">
+  <h2>4 · Consensus &amp; Block Structure</h2>
+  <h3>4.1 Proof-of-work</h3>
+  <p>
+    A block is valid when its hash has at least <code>D</code> leading zero bits, where <code>D</code> is
+    the current difficulty (<code>D = 18</code> at genesis, ≈ 2<sup>18</sup> hash attempts per block).
+    Miners increment <code>nonce</code> and re-hash; there is no memory hardness, by design.
+  </p>
+  <h3>4.2 Difficulty retargeting</h3>
+  <p>
+    Every <code>R = 20</code> blocks, difficulty is recomputed from the measured wall-clock span of the
+    prior window versus the 1,200-second target (20 × 60 s):
+  </p>
+  <pre><code>ratio    = clamp( expected_dt / actual_dt , 1/4 , 4 )
+Dₙₑw     = clamp( D_prev + round(log₂ ratio) , 8 , 30 )</code></pre>
+  <p>
+    The 4× per-window clamp and 8–30 bit absolute bounds prevent difficulty shocks from a minority
+    miner joining or leaving; the log-linear bit adjustment mirrors Bitcoin's bowl-shaped retarget
+    behavior at a much shorter horizon. Retarget inputs are the <em>stored</em> block timestamps of the
+    prior window, so recomputation is deterministic from the ledger and nodes never disagree.
+  </p>
+  <h3>4.3 Validation rules</h3>
+  <ul>
+    <li>PoW difficulty met, and <code>prev_hash</code> equals the tip's hash.</li>
+    <li>Reward txs (<code>mine</code>, <code>premine</code>) must be chain-minted: they carry no user signature path and are rejected if submitted by users.</li>
+    <li>Spend txs require a valid Ed25519 signature over the canonical payload, a sender/vk match, a strictly sequential nonce, and sufficient balance including the burned fee.</li>
+    <li>Rewards are clamped to the remaining emission; supply can never exceed the cap even under a consensus bug in reward scheduling.</li>
+    <li>Fee burns are applied at the same time as the transfer — total supply only ever decreases via burns.</li>
+  </ul>
+</section>
+
+<section id="tokenomics">
+  <h2>5 · Tokenomics</h2>
+  <table>
+    <thead><tr><th>Parameter</th><th>Value</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Max supply</td><td>1,000,000,000 JER</td><td>Hard cap, enforced at validation</td></tr>
+      <tr><td>Genesis premine</td><td>200,000,000 JER</td><td>20% — founder allocation, publicly visible at height 0</td></tr>
+      <tr><td>Block reward</td><td>50 JER</td><td>Halves every 210,000 blocks (~145 days at target)</td></tr>
+      <tr><td>Target block time</td><td>60 s</td><td>Retarget window: 20 blocks</td></tr>
+      <tr><td>Transfer fee</td><td>0.1 JER</td><td>Flat, burned on every spend</td></tr>
+      <tr><td>Unit</td><td>µJ internally</td><td>1 JER = 1,000,000 µJ; integer math only</td></tr>
+      <tr><td>Deflationary pressure</td><td>Fee burns</td><td>Net emission = rewards − burns</td></tr>
+    </tbody>
+  </table>
+  <p>
+    The 20% premine funds long-term development, liquidity, and community grants; it is fully transparent
+    on-chain from genesis and its movements are auditable through the public explorer. Emission to year
+    one at target block time is ≈ 17.1M JER (~1.7% of cap) — 210,000 blocks at 50 JER, then 210,000 at
+    25 JER, then 105,600 at 12.5 JER — tapering with each halving.
+  </p>
+</section>
+
+<section id="mining">
+  <h2>6 · Mining Model</h2>
+  <p>
+    JerithChain separates <em>who may mine</em> (social, metered) from <em>what secures the chain</em>
+    (proof-of-work, permissionless to verify). Two paths exist:
+  </p>
+  <h3>6.1 Passive mining</h3>
+  <p>
+    Each inbound message to Jerith is independently eligible at a 12% probability; a win mints a block
+    capped at 2 JER for the sender. Cooldowns (300 s success / 180 s failure) apply per identity and are
+    enforced server-side inside the node's serialized write path, making reward races structurally
+    impossible. Message-level deduplication makes replay of delivery events idempotent.
+  </p>
+  <h3>6.2 Explicit mining</h3>
+  <p>
+    A user may deliberately mine for the full block reward (50 JER at current height). The node performs
+    the hash search itself — mining is <strong>not</strong> compute-gated for the user — and the same
+    cooldowns apply. This is deliberately egalitarian: users do not need GPUs, and the operator gains no
+    mining advantage beyond what any participant has.
+  </p>
+  <h3>6.3 Opt-out redirection</h3>
+  <p>
+    Participation is opt-in by default. An opted-out identity's mining rights still consume the global
+    issuance schedule, but rewards are credited to the community pool instead of the user's wallet. The
+    user's balance and history are untouched; re-enabling restores direct crediting. This keeps the
+    emission curve independent of individual participation choices — total issuance remains a function
+    of community activity, not of who happens to be opted in.
+  </p>
+</section>
+
+<section id="accounts">
+  <h2>7 · Accounts, Wallets &amp; Security</h2>
+  <h3>7.1 Identity binding</h3>
+  <p>
+    Addresses are <span class="formula">JER ‖ SHA-256("jerith-addr" ‖ vk)[0:32].upper()</span> — 35
+    characters, checksummed by construction (a typo does not hash-match any registered account). One
+    wallet is bound to one platform identity; rebinding requires proving knowledge of the wallet's
+    private key.
+  </p>
+  <h3>7.2 Key custody</h3>
+  <p>
+    Ed25519 secret keys (32-byte seeds) are stored doubly encrypted: AES-256-GCM under a node master key
+    (OS-protected file, 0600) <em>and</em> a second scrypt-wrapped envelope under the user's password.
+    Sovereignty operations — key export, identity rebind, TOTP enrollment changes, and spends above the
+    auto-sign policy — require the password plus a valid RFC-6238 TOTP code, enforced server-side with
+    attempt lockouts and audit logging.
+  </p>
+  <h3>7.3 Auto-sign policy</h3>
+  <p>
+    Spends at or below 100 JER per transaction and 2,000 JER per rolling day are signed automatically.
+    Above either bound, user re-authorization (password + TOTP) is required. The policy is enforced in
+    the node, not the agent, so a compromised conversational layer cannot drain a wallet beyond the
+    daily bound without explicit 2FA.
+  </p>
+  <h3>7.4 Key export &amp; portability</h3>
+  <p>
+    Users may export their secret key (rate-limited to once per hour, 2FA-gated, private-channel
+    delivery only) and later rebind the same wallet to a new platform identity. The address, balance,
+    and history are invariant under rebind; the identity is metadata, not the account.
+  </p>
+</section>
+
+<section id="network">
+  <h2>8 · Network Topology &amp; Synchronization</h2>
+  <p>
+    Today JerithChain operates as an operator-rooted star: the founding node authors blocks, and any
+    number of <strong>read-only followers</strong> mirror the ledger over gRPC streams secured with TLS
+    and a bearer token. Followers verify every received block — PoW, linkage, signature validity, reward
+    schedule, supply cap — before applying it, and re-sync on divergence by discarding their tail. A
+    public chain snapshot (full recent history plus address balances) is published every five minutes
+    for lightweight verification and explorer use.
+  </p>
+  <p>
+    This topology is honest about its stage: it is a <strong>federated single-authority chain</strong>
+    with independent verification, not yet a decentralized validator set. The roadmap (§12) sequences
+    the path to multi-authority block production without changing the validation rules that followers
+    already enforce.
+  </p>
+</section>
+
+<section id="privacy">
+  <h2>9 · Transparency &amp; Privacy</h2>
+  <ul>
+    <li><strong>Pseudonymity.</strong> Addresses are not directly linked to platform identities in chain data; reward memos record the platform ID that earned a block, by design, making social issuance publicly auditable.</li>
+    <li><strong>No hidden state.</strong> There are no private side-ledgers. Every balance change — including the genesis premine — is a visible transaction.</li>
+    <li><strong>Minimal personal data.</strong> Nodes store platform IDs and public keys only; no emails, no profile data. Wallet key material is encrypted at rest and never leaves the node except through the explicit, 2FA-gated export flow.</li>
+    <li><strong>Regulatory posture.</strong> Jerith Coin makes no privacy guarantees beyond pseudonymity; users should treat chain activity as public.</li>
+  </ul>
+</section>
+
+<section id="security-discussion">
+  <h2>10 · Security Discussion</h2>
+  <h3>10.1 Consensus-level</h3>
+  <ul>
+    <li><strong>51% attack.</strong> As a single-authority chain with independent verifiability, block authorship is trusted to the operator; followers and third parties can verify but not fork. Multi-authority mining (§12) is the mitigation path; the PoW substrate requires no changes to get there.</li>
+    <li><strong>Difficulty manipulation.</strong> Timestamp windows are clamped (4×) and bounded (8–30 bits); an operator inserting favorable timestamps can shift issuance timing but not total supply, which is capped at validation.</li>
+    <li><strong>Replay.</strong> Per-account sequential nonces make replay impossible; message-level delivery deduplication adds an application-layer guarantee.</li>
+  </ul>
+  <h3>10.2 Application-level</h3>
+  <ul>
+    <li><strong>Agent compromise.</strong> The conversational agent holds no keys; it calls the node's token-authenticated API, which enforces auto-sign caps and 2FA gates independent of the agent.</li>
+    <li><strong>Node compromise.</strong> Master-key theft alone cannot export user keys (second scrypt envelope requires user passwords); per-user TOTP further gates sovereignty operations. Failures are rate-limited and audited.</li>
+    <li><strong>Economic spam.</strong> Burned fees price ledger writes; social rate limits price mining attempts.</li>
+  </ul>
+</section>
+
+<section id="implementation">
+  <h2>11 · Implementation Status</h2>
+  <p>
+    JerithChain v1.0 is live. The reference implementation is ~2,600 lines of dependency-light Python
+    (PyNaCl, cryptography, FastAPI, grpcio) with SQLite storage.
+  </p>
+  <ul>
+    <li><strong>Tested:</strong> 23-test suite covering key/address formats, signature verification, PoW boundary conditions, retarget math and clamping, halving purity, double-spend and nonce enforcement, forged-sender rejection, password wrapping, TOTP windows, and a live-node end-to-end scenario (wallet lifecycle, opt-out redirection, cooldowns, transfer, construct+sign, 2FA export, rebind).</li>
+    <li><strong>Operating:</strong> a two-node deployment (author + TLS follower) has synchronized every block since genesis; a five-minute public snapshot and live explorer are published continuously.</li>
+    <li><strong>Open source:</strong> MIT license; no patents, no permissioned forks.</li>
+  </ul>
+</section>
+
+<section id="roadmap">
+  <h2>12 · Roadmap</h2>
+  <table>
+    <thead><tr><th>Phase</th><th>Scope</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>v1.0 — Genesis</td><td>PoW chain, wallets, 2FA, agent mining, follower sync, explorer</td><td><strong>Shipped</strong></td></tr>
+      <tr><td>v1.1 — Federation</td><td>Multi-miner block authorship with independent node operators; gossip-based mempool</td><td>Design</td></tr>
+      <tr><td>v1.2 — Light clients</td><td>SPV-style headers+merkle proof verification for mobile/web wallets</td><td>Design</td></tr>
+      <tr><td>v2.0 — Governance</td><td>On-chain community treasury proposals drawn from fee burns</td><td>Research</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="conclusion">
+  <h2>13 · Conclusion</h2>
+  <p>
+    Jerith Coin demonstrates that a community currency can reward participation without abandoning the
+    auditability of a conventional chain. Its consensus is intentionally orthodox; its issuance is
+    intentionally social. The result is an asset whose distribution follows conversation rather than
+    capital — secured by proof-of-work, verified by anyone, and settled entirely on JerithChain.
+  </p>
+</section>
+
+<section id="references">
+  <h2>14 · References &amp; Resources</h2>
+  <ul>
+    <li>Reference node &amp; full source: <a href="https://github.com/ParadoxFuzzle/jerithchain">github.com/ParadoxFuzzle/jerithchain</a></li>
+    <li>Live explorer: <a href="https://jerithai.com/explorer.html">jerithai.com/explorer.html</a> · <a href="https://paradoxfuzzle.github.io/jerithchain/">mirror</a></li>
+    <li>Jerith AI (the agent): <a href="https://jerithai.com/">jerithai.com</a></li>
+    <li>Nakamoto, S. <em>Bitcoin: A Peer-to-Peer Electronic Cash System</em> (2008) — PoW and retargeting lineage</li>
+    <li>RFC 6238 — TOTP: time-based one-time password algorithm (2FA)</li>
+    <li>RFC 8032 — Ed25519: high-speed high-security signatures</li>
+  </ul>
+  <div class="disclaimer">
+    <strong>Disclaimer.</strong> This whitepaper is for informational purposes only and does not
+    constitute an offer to sell, a solicitation to buy, or investment advice. Jerith Coin is a
+    community asset with no promised value, dividend, or return; it may lose value or become
+    illiquid. Digital assets are volatile and may be restricted in your jurisdiction — consult
+    local law before acquiring, mining, or transferring JER. Specifications reflect the reference
+    implementation as of v1.0 (October 2026) and may evolve through the governance process.
+  </div>
+</section>
+
+<div class="wpfoot no-print">
+  <p>JerithChain v1.0 · Whitepaper v1.0 · October 2026 · <a href="/">jerithai.com</a> · <a href="/explorer.html">Explorer</a> · <a href="https://github.com/ParadoxFuzzle/jerithchain">Source</a></p>
+</div>
+
+</div>
+</body>
+</html>
