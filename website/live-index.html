@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- JerithAI.com — single-file static site. -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070a12">
+    <meta name="description" content="Jerith AI is an invite-only AI assistant for content creators that lives inside private Discord community servers. Storytelling, brainstorming, SEO, websites, streaming, automation, research — with no backend datacenter. Now in early alpha.">
+    <meta property="og:title" content="Jerith AI — Intelligence without the footprint">
+    <meta property="og:description" content="A private-community AI assistant for content creators, accessible through Discord servers. Invite-only during early alpha.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://jerithai.com">
+    <meta property="og:site_name" content="Jerith AI">
+    <meta property="og:image" content="https://jerithai.com/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Jerith AI — Intelligence without the footprint. A private-community AI assistant for content creators, living inside Discord servers. Early alpha, invite-only.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Jerith AI — Intelligence without the footprint">
+    <meta name="twitter:description" content="A private-community AI assistant for content creators, accessible through Discord servers. Invite-only during early alpha.">
+    <meta name="twitter:image" content="https://jerithai.com/og-image.png">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230d1220'/%3E%3Cg%20fill='%23ff7a59'%3E%3Cellipse%20cx='32'%20cy='41'%20rx='12'%20ry='10'/%3E%3Cellipse%20cx='15'%20cy='27'%20rx='5'%20ry='6.5'%20transform='rotate(-20%2015%2027)'/%3E%3Cellipse%20cx='25'%20cy='18'%20rx='5'%20ry='6.8'%20transform='rotate(-8%2025%2018)'/%3E%3Cellipse%20cx='39'%20cy='18'%20rx='5'%20ry='6.8'%20transform='rotate(8%2039%2018)'/%3E%3Cellipse%20cx='49'%20cy='27'%20rx='5'%20ry='6.5'%20transform='rotate(20%2049%2027)'/%3E%3C/g%3E%3C/svg%3E">
+    <title>Jerith AI — Intelligence without the Footprint</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070a12;
+            --bg-elev: #0c1120;
+            --surface: rgba(255, 255, 255, 0.035);
+            --surface-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.09);
+            --border-strong: rgba(255, 255, 255, 0.16);
+            --text: #e9edf5;
+            --muted: #98a2b6;
+            --faint: #6b7488;
+            --accent-1: #ff7a59;
+            --accent-2: #ffb86b;
+            --accent-grad: linear-gradient(120deg, #ff7a59, #ffb86b);
+            --discord: #5865f2;
+            --green: #4ade80;
+            --amber: #ffb86b;
+            --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-display: "Space Grotesk", "Inter", sans-serif;
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-padding-top: 92px; }
+        @media (prefers-reduced-motion: no-preference) {
+            html { scroll-behavior: smooth; }
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        ::selection { background: rgba(255, 122, 89, 0.35); color: #fff; }
+
+        a { color: inherit; text-decoration: none; }
+        ul { list-style: none; }
+        img, svg { display: block; }
+
+        .container {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ---------- Ambient background ---------- */
+        .bg-decor {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .bg-decor::before {
+            content: "";
+            position: absolute;
+            top: -320px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 1100px;
+            height: 700px;
+            background: radial-gradient(ellipse at center, rgba(255, 122, 89, 0.16), transparent 65%);
+        }
+        .bg-decor::after {
+            content: "";
+            position: absolute;
+            bottom: -260px;
+            right: -160px;
+            width: 760px;
+            height: 640px;
+            background: radial-gradient(ellipse at center, rgba(88, 101, 242, 0.12), transparent 65%);
+        }
+
+        /* ---------- Navigation ---------- */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            background: rgba(7, 10, 18, 0.72);
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s ease, background 0.3s ease;
+        }
+        .nav.scrolled { border-bottom-color: var(--border); }
+        .nav-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 68px;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: 0.01em;
+        }
+        .brand-mark {
+            width: 34px;
+            height: 34px;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #1a2136, #0d1220);
+            border: 1px solid var(--border-strong);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-1);
+        }
+        .brand-mark svg { width: 18px; height: 18px; }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+        }
+        .nav-links a {
+            font-size: 0.92rem;
+            font-weight: 500;
+            color: var(--muted);
+            transition: color 0.2s ease;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta { display: flex; align-items: center; gap: 14px; }
+
+        /* ---------- Buttons ---------- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 12px 22px;
+            border-radius: 999px;
+            font-size: 0.94rem;
+            font-weight: 600;
+            font-family: var(--font-body);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+        .btn svg { width: 17px; height: 17px; }
+        .btn-primary {
+            background: var(--accent-grad);
+            color: #21100a;
+            box-shadow: 0 4px 18px rgba(255, 122, 89, 0.25);
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(255, 122, 89, 0.35); }
+        .btn-ghost {
+            border-color: var(--border-strong);
+            color: var(--text);
+            background: transparent;
+        }
+        .btn-ghost:hover { border-color: rgba(255, 184, 107, 0.55); background: var(--surface); }
+        .btn-discord {
+            background: var(--discord);
+            color: #fff;
+            box-shadow: 0 4px 18px rgba(88, 101, 242, 0.3);
+        }
+        .btn-discord:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(88, 101, 242, 0.4); }
+        .btn-sm { padding: 9px 18px; font-size: 0.88rem; }
+
+        a:focus-visible, button:focus-visible, summary:focus-visible {
+            outline: 2px solid var(--accent-2);
+            outline-offset: 3px;
+            border-radius: 6px;
+        }
+
+        /* ---------- Section scaffolding ---------- */
+        section { padding: 96px 0; }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--accent-2);
+            margin-bottom: 16px;
+        }
+        .eyebrow::before {
+            content: "";
+            width: 22px;
+            height: 1px;
+            background: var(--accent-grad);
+        }
+        .section-head { max-width: 720px; margin-bottom: 56px; }
+        .section-head h2 {
+            font-family: var(--font-display);
+            font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+            font-weight: 700;
+            line-height: 1.15;
+            letter-spacing: -0.015em;
+            margin-bottom: 16px;
+        }
+        .section-head p { color: var(--muted); font-size: 1.05rem; }
+
+        /* ---------- Hero ---------- */
+        .hero {
+            padding: 110px 0 90px;
+            text-align: center;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 7px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 184, 107, 0.35);
+            background: rgba(255, 184, 107, 0.08);
+            color: var(--accent-2);
+            font-size: 0.83rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            margin-bottom: 30px;
+        }
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5);
+            animation: pulse 2.2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+        }
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2.4rem, 6vw, 4.1rem);
+            font-weight: 700;
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+            margin-bottom: 24px;
+        }
+        .hero h1 .grad {
+            background: var(--accent-grad);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-sub {
+            max-width: 680px;
+            margin: 0 auto 38px;
+            color: var(--muted);
+            font-size: 1.14rem;
+        }
+        .hero-sub strong { color: var(--text); font-weight: 600; }
+        .hero-ctas {
+            display: flex;
+            justify-content: center;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-bottom: 64px;
+        }
+        .hero-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .stat-chip {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 20px 14px;
+            text-align: center;
+        }
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 1.45rem;
+            font-weight: 700;
+            background: var(--accent-grad);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-label {
+            font-size: 0.82rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ---------- Capabilities ---------- */
+        .cap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .cap-card {
+            position: relative;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 28px;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+        }
+        .cap-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255, 122, 89, 0.4);
+            background: var(--surface-hover);
+        }
+        .cap-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .cap-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255, 122, 89, 0.16), rgba(255, 184, 107, 0.08));
+            border: 1px solid rgba(255, 122, 89, 0.25);
+            color: var(--accent-1);
+        }
+        .cap-icon svg { width: 20px; height: 20px; }
+        .cap-num {
+            font-family: var(--font-display);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--faint);
+            letter-spacing: 0.08em;
+        }
+        .cap-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.18rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .cap-card .cap-desc {
+            color: var(--muted);
+            font-size: 0.94rem;
+            margin-bottom: 18px;
+        }
+        .cap-tries { border-top: 1px dashed var(--border); padding-top: 16px; }
+        .cap-tries-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--faint);
+            margin-bottom: 10px;
+        }
+        .cap-tries li {
+            position: relative;
+            padding-left: 18px;
+            font-size: 0.88rem;
+            color: var(--muted);
+            margin-bottom: 7px;
+        }
+        .cap-tries li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.62em;
+            width: 7px;
+            height: 7px;
+            border-radius: 2px;
+            background: var(--accent-grad);
+            opacity: 0.85;
+        }
+        .cap-tries li em { color: var(--text); font-style: normal; }
+
+        /* ---------- Memory ---------- */
+        .mem-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--amber);
+            border: 1px solid rgba(255, 184, 107, 0.4);
+            background: rgba(255, 184, 107, 0.1);
+            padding: 5px 11px;
+            border-radius: 999px;
+        }
+        .memory-default {
+            margin-top: 24px;
+            text-align: center;
+            border: 1px solid rgba(255, 184, 107, 0.3);
+            background: rgba(255, 184, 107, 0.06);
+            border-radius: var(--radius-sm);
+            padding: 18px 24px;
+            color: var(--muted);
+            font-size: 0.94rem;
+        }
+        .memory-default strong { color: var(--amber); }
+
+        /* ---------- Core engine capabilities ---------- */
+        .core-sub {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 64px 0 22px;
+        }
+        .core-sub h3 {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        .core-sub::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+        .core-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .core-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+        }
+        .core-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 122, 89, 0.4);
+            background: var(--surface-hover);
+        }
+        .core-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-family: var(--font-display);
+            font-size: 0.99rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .cc-icon {
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255, 122, 89, 0.16), rgba(255, 184, 107, 0.08));
+            border: 1px solid rgba(255, 122, 89, 0.25);
+            color: var(--accent-1);
+        }
+        .cc-icon svg { width: 16px; height: 16px; }
+        .core-card p { color: var(--muted); font-size: 0.88rem; }
+        .moe-note {
+            margin-top: 20px;
+            text-align: center;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            padding: 20px 26px;
+            color: var(--muted);
+            font-size: 0.93rem;
+        }
+        .moe-note strong { color: var(--text); }
+
+        /* ---------- Capability reference ---------- */
+        .ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 20px;
+        }
+        .ref-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 26px;
+            transition: border-color 0.25s ease, background 0.25s ease;
+        }
+        .ref-card:hover {
+            border-color: rgba(255, 122, 89, 0.35);
+            background: var(--surface-hover);
+        }
+        .ref-card h3 {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 14px;
+        }
+        .ref-num {
+            font-family: var(--font-display);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--faint);
+            letter-spacing: 0.08em;
+        }
+        .ref-card ul {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .ref-card li {
+            position: relative;
+            padding-left: 16px;
+            font-size: 0.87rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+        .ref-card li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.55em;
+            width: 6px;
+            height: 6px;
+            border-radius: 2px;
+            background: var(--accent-grad);
+            opacity: 0.8;
+        }
+        .ref-card li strong { color: var(--text); font-weight: 600; }
+
+        /* ---------- Infrastructure ---------- */
+        .fleet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .fleet-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 26px;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+        }
+        .fleet-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(255, 122, 89, 0.4);
+            background: var(--surface-hover);
+        }
+        .fc-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255, 122, 89, 0.16), rgba(255, 184, 107, 0.08));
+            border: 1px solid rgba(255, 122, 89, 0.25);
+            color: var(--accent-1);
+            margin-bottom: 14px;
+        }
+        .fc-icon svg { width: 19px; height: 19px; }
+        .fc-head {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+        .fleet-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.08rem;
+            font-weight: 600;
+        }
+        .fc-count {
+            font-family: var(--font-display);
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--accent-2);
+        }
+        .fc-role {
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--faint);
+            margin-bottom: 16px;
+        }
+        .spec-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .spec-chip {
+            border: 1px solid var(--border-strong);
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 7px 12px;
+            font-size: 0.82rem;
+            color: var(--muted);
+        }
+        .spec-chip strong { color: var(--text); font-weight: 600; }
+        .fleet-total {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            border: 1px solid rgba(255, 122, 89, 0.3);
+            background:
+                radial-gradient(ellipse at top left, rgba(255, 122, 89, 0.08), transparent 60%),
+                var(--surface);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-align: center;
+        }
+        .ft-value {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--accent-grad);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .ft-label { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+        .oss-grid {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .oss-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 26px;
+        }
+        .oss-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            font-family: var(--font-display);
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+        .oss-icon {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-strong);
+            color: var(--text);
+        }
+        .oss-icon svg { width: 17px; height: 17px; }
+        .oss-card p {
+            color: var(--muted);
+            font-size: 0.9rem;
+            margin: 12px 0 16px;
+        }
+        .oss-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--accent-2);
+        }
+        .oss-link:hover { color: var(--text); }
+
+        /* ---------- Access (Discord) ---------- */
+        .access-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 24px;
+            align-items: stretch;
+        }
+        .steps { display: flex; flex-direction: column; gap: 16px; }
+        .step {
+            display: flex;
+            gap: 20px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 26px 28px;
+            flex: 1;
+        }
+        .step-num {
+            font-family: var(--font-display);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-1);
+            border: 1px solid rgba(255, 122, 89, 0.35);
+            background: rgba(255, 122, 89, 0.08);
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .step h3 {
+            font-family: var(--font-display);
+            font-size: 1.08rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .step p { color: var(--muted); font-size: 0.94rem; }
+        .why-card {
+            border: 1px solid rgba(88, 101, 242, 0.3);
+            background: linear-gradient(160deg, rgba(88, 101, 242, 0.1), rgba(88, 101, 242, 0.03));
+            border-radius: var(--radius);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+        }
+        .why-head {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .why-head .discord-mark {
+            width: 40px;
+            height: 40px;
+            border-radius: 11px;
+            background: var(--discord);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+        .why-head .discord-mark svg { width: 22px; height: 22px; }
+        .why-head h3 {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+        .why-card ul { margin-bottom: 22px; }
+        .why-card li {
+            position: relative;
+            padding-left: 24px;
+            color: var(--muted);
+            font-size: 0.94rem;
+            margin-bottom: 12px;
+        }
+        .why-card li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent-2);
+            font-weight: 700;
+        }
+        .why-note {
+            margin-top: auto;
+            font-size: 0.84rem;
+            color: var(--faint);
+            border-top: 1px solid rgba(88, 101, 242, 0.25);
+            padding-top: 16px;
+        }
+
+        /* ---------- Alpha ---------- */
+        .alpha-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 44px;
+        }
+        .tier {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 26px;
+            border-top: 3px solid transparent;
+        }
+        .tier-live { border-top-color: var(--green); }
+        .tier-testing { border-top-color: var(--amber); }
+        .tier-early { border-top-color: var(--faint); }
+        .tier-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .tier-tag::before { content: "●"; font-size: 0.7rem; }
+        .tier-live .tier-tag { color: var(--green); }
+        .tier-testing .tier-tag { color: var(--amber); }
+        .tier-early .tier-tag { color: var(--muted); }
+        .tier h3 {
+            font-family: var(--font-display);
+            font-size: 1.02rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .tier p { color: var(--muted); font-size: 0.9rem; }
+        .alpha-principles {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        .principle {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+        }
+        .principle-icon {
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            border-radius: 10px;
+            border: 1px solid var(--border-strong);
+            background: var(--surface);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-2);
+            font-size: 1rem;
+        }
+        .principle h4 { font-size: 0.98rem; font-weight: 600; margin-bottom: 4px; }
+        .principle p { color: var(--muted); font-size: 0.88rem; }
+
+        /* ---------- Provenance ---------- */
+        .provenance-card {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 860px;
+            margin: 0 auto;
+        }
+        .ledger-row { margin-bottom: 28px; }
+        .ledger-row:last-of-type { margin-bottom: 0; }
+        .ledger-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 10px;
+            gap: 16px;
+        }
+        .ledger-label .pct {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: var(--accent-grad);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .ledger-label .name { font-weight: 600; font-size: 0.98rem; }
+        .ledger-desc { color: var(--muted); font-size: 0.88rem; margin-bottom: 12px; }
+        .bar-track {
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.07);
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            background: var(--accent-grad);
+        }
+        .ledger-note {
+            margin-top: 30px;
+            padding-top: 22px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+        .prov-h3 {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .prov-lede { color: var(--muted); font-size: 0.94rem; margin-bottom: 8px; }
+        .model-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            align-items: flex-start;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .model-row:last-child { border-bottom: none; padding-bottom: 4px; }
+        .model-name {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text);
+            flex: 0 0 218px;
+        }
+        .model-desc { color: var(--muted); font-size: 0.9rem; flex: 1; min-width: 220px; line-height: 1.55; }
+        .model-chip {
+            flex-shrink: 0;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid;
+            margin-top: 2px;
+        }
+        .chip-custom { color: var(--accent-2); border-color: rgba(255, 184, 107, 0.4); background: rgba(255, 184, 107, 0.08); }
+        .chip-local { color: var(--green); border-color: rgba(74, 222, 128, 0.35); background: rgba(74, 222, 128, 0.08); }
+        .chip-fallback { color: var(--muted); border-color: var(--border-strong); background: rgba(255, 255, 255, 0.04); }
+
+        /* ---------- FAQ ---------- */
+        .faq-list { max-width: 780px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+        .faq-item {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            transition: border-color 0.2s ease;
+        }
+        .faq-item[open] { border-color: rgba(255, 122, 89, 0.35); }
+        .faq-item summary {
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 19px 24px;
+            font-weight: 600;
+            font-size: 0.99rem;
+        }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary::after {
+            content: "+";
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: var(--accent-2);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .faq-item[open] summary::after { transform: rotate(45deg); }
+        .faq-item .faq-body {
+            padding: 0 24px 20px;
+            color: var(--muted);
+            font-size: 0.93rem;
+        }
+
+        /* ---------- Final CTA ---------- */
+        .final-cta {
+            border: 1px solid rgba(255, 122, 89, 0.3);
+            background:
+                radial-gradient(ellipse at top left, rgba(255, 122, 89, 0.12), transparent 55%),
+                radial-gradient(ellipse at bottom right, rgba(88, 101, 242, 0.1), transparent 55%),
+                var(--surface);
+            border-radius: 22px;
+            padding: 64px 40px;
+            text-align: center;
+        }
+        .final-cta h2 {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+            font-weight: 700;
+            letter-spacing: -0.015em;
+            margin-bottom: 14px;
+        }
+        .final-cta p {
+            color: var(--muted);
+            max-width: 560px;
+            margin: 0 auto 30px;
+        }
+        .final-cta .hero-ctas { margin-bottom: 0; }
+
+        /* ---------- Footer ---------- */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 56px 0 34px;
+            margin-top: 40px;
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr;
+            gap: 40px;
+            margin-bottom: 36px;
+        }
+        .footer-blurb { color: var(--muted); font-size: 0.9rem; margin-top: 14px; max-width: 480px; }
+        .footer-col h4 {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--faint);
+            margin-bottom: 14px;
+        }
+        .footer-col a {
+            display: block;
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-bottom: 9px;
+            transition: color 0.2s ease;
+        }
+        .footer-col a:hover { color: var(--text); }
+        .footer-bottom {
+            border-top: 1px solid var(--border);
+            padding-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            color: var(--faint);
+            font-size: 0.82rem;
+        }
+
+        /* ---------- Reveal animation (only when JS is available) ---------- */
+        .js .reveal {
+            opacity: 0;
+            transform: translateY(18px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        .js .reveal.in { opacity: 1; transform: none; }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 900px) {
+            .access-grid, .alpha-grid, .alpha-principles { grid-template-columns: 1fr; }
+            .hero-stats { grid-template-columns: repeat(2, 1fr); }
+            .fleet-total { grid-template-columns: repeat(2, 1fr); }
+            .footer-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 720px) {
+            .nav-links { display: none; }
+            section { padding: 72px 0; }
+            .hero { padding: 80px 0 64px; }
+            .provenance-card { padding: 28px 22px; }
+            .final-cta { padding: 48px 24px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .js .reveal { opacity: 1; transform: none; transition: none; }
+            .pulse-dot { animation: none; }
+            .btn:hover { transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <script>document.documentElement.classList.add('js');</script>
+    <div class="bg-decor" aria-hidden="true"></div>
+
+    <!-- ===================== NAV ===================== -->
+    <header class="nav" id="nav">
+        <div class="container nav-inner">
+            <a href="#top" class="brand" aria-label="Jerith AI home">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="15.8" rx="4.8" ry="4"/><ellipse cx="5.4" cy="10.6" rx="2" ry="2.6" transform="rotate(-20 5.4 10.6)"/><ellipse cx="9.5" cy="7.4" rx="2" ry="2.7" transform="rotate(-8 9.5 7.4)"/><ellipse cx="14.5" cy="7.4" rx="2" ry="2.7" transform="rotate(8 14.5 7.4)"/><ellipse cx="18.6" cy="10.6" rx="2" ry="2.6" transform="rotate(20 18.6 10.6)"/></svg>
+                </span>
+                Jerith AI
+            </a>
+            <nav class="nav-links" aria-label="Primary">
+                <a href="#capabilities">Capabilities</a>
+                <a href="#memory">Memory</a>
+                <a href="#access">Access</a>
+                <a href="#coin">⛏ JER Coin</a>
+                <a href="/whitepaper.html">Whitepaper</a>
+                <a href="#provenance">Provenance</a>
+                <a href="#faq">FAQ</a>
+                <a href="/explorer.html">Explorer</a>
+            </nav>
+            <div class="nav-cta">
+                <a class="btn btn-sm" href="https://github.com/ParadoxFuzzle/jerithchain" target="_blank" rel="noopener" style="border:1px solid var(--border);background:transparent;color:var(--text);display:inline-flex;align-items:center;gap:8px;text-decoration:none">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="width:15px;height:15px"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.9 1.3 1.9 1.3 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.1-.4-.6-1.6.1-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.6.3 2.8.1 3.2.8.8 1.3 1.9 1.3 3.1 0 4.7-2.9 5.7-5.6 6 .5.4.9 1.1.9 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .3z"/></svg>
+                    Run a Node
+                </a>
+                <a class="btn btn-discord btn-sm" href="https://discord.gg/kprtABzarB">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+                    Request Access
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="top">
+        <!-- ===================== HERO ===================== -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-badge">
+                    <span class="pulse-dot" aria-hidden="true"></span>
+                    Early Alpha · Private Discord Community
+                </div>
+                <h1>Intelligence without<br>the <span class="grad">footprint</span>.</h1>
+                <p class="hero-sub">
+                    Jerith AI is a personal AI assistant for content creators that <strong>lives inside your
+                    community's Discord servers</strong> — writing, brainstorming, researching, and automating
+                    alongside you. Local-first on its own hardware fleet. No public signup. <strong>Invite-only
+                    while in alpha.</strong>
+                </p>
+                <div class="hero-ctas">
+                    <a class="btn btn-primary" href="#capabilities">Explore Capabilities</a>
+                    <a class="btn btn-ghost" href="#access">How Access Works</a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat-chip">
+                        <div class="stat-value">Local-first</div>
+                        <div class="stat-label">Two-GPU fabric · smart routing</div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-value">16</div>
+                        <div class="stat-label">Models in the routing pool</div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-value">8</div>
+                        <div class="stat-label">Creator skill domains</div>
+                    </div>
+                    <div class="stat-chip">
+                        <div class="stat-value">⛏ JER</div>
+                        <div class="stat-label">Mine it by talking to Jerith</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== CAPABILITIES ===================== -->
+        <section id="capabilities">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Capabilities</span>
+                    <h2>One assistant, eight deep skill domains</h2>
+                    <p>
+                        Jerith is trained across the domains creators actually work in. Ask in plain language —
+                        it plans, drafts, critiques, and automates, right inside your server.
+                    </p>
+                </div>
+                <div class="cap-grid">
+                    <!-- 01 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 4.2c-6 .4-11 5-12.9 11.2L5.5 20l4.6-1.8C16.3 16.3 21 11.3 21 5.3c0-.7-.3-1.1-.8-1.1z"/><path d="M4 20c2.5-4.5 6-8 10.5-10.5"/></svg>
+                            </span>
+                            <span class="cap-num">01</span>
+                        </div>
+                        <h3>Creative Storytelling</h3>
+                        <p class="cap-desc">
+                            From a single premise to a fully realized world — plot architecture, character arcs,
+                            serialized chapters, and dialogue that sounds like people. Novel-length consistency included.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Outline a 12-chapter fantasy arc with subplots."</em></li>
+                            <li><em>"Tighten the pacing in this script scene."</em></li>
+                            <li><em>"Keep my series lore consistent across chapters."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 02 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4"/><path d="M12 3a6.5 6.5 0 0 0-4 11.6c.7.6 1 1.4 1 2.4h6c0-1 .3-1.8 1-2.4A6.5 6.5 0 0 0 12 3z"/></svg>
+                            </span>
+                            <span class="cap-num">02</span>
+                        </div>
+                        <h3>Brainstorming &amp; Ideation</h3>
+                        <p class="cap-desc">
+                            Structured idea generation on demand — divergent thinking, angle-finding, and concept
+                            expansion that ends blank-page paralysis for good.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Give me 20 video hooks for a retro-tech channel."</em></li>
+                            <li><em>"Find a fresh angle on a saturated topic."</em></li>
+                            <li><em>"Turn this one idea into a full content series."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 03 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/><path d="M8 10.5h5M10.5 8v5"/></svg>
+                            </span>
+                            <span class="cap-num">03</span>
+                        </div>
+                        <h3>SEO &amp; Content Strategy</h3>
+                        <p class="cap-desc">
+                            Search-intent research, on-page optimization, and content clusters built to rank —
+                            written for humans first and structured for crawlers second.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Build a keyword map for my niche."</em></li>
+                            <li><em>"Write a meta description that earns the click."</em></li>
+                            <li><em>"Turn one pillar post into a topic cluster."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 04 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6l-5 6 5 6M16 6l5 6-5 6M13.5 4l-3 16"/></svg>
+                            </span>
+                            <span class="cap-num">04</span>
+                        </div>
+                        <h3>Website Authorship</h3>
+                        <p class="cap-desc">
+                            Clean, semantic, responsive front-ends — accessible by default and fast by design.
+                            Single pages, portfolios, or full site structures.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Prototype a landing page in semantic HTML."</em></li>
+                            <li><em>"Audit my site's accessibility and fix it."</em></li>
+                            <li><em>"Restructure my portfolio for SEO."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 05 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.5l6-3.5v10l-6-3.5"/></svg>
+                            </span>
+                            <span class="cap-num">05</span>
+                        </div>
+                        <h3>Streaming &amp; OBS</h3>
+                        <p class="cap-desc">
+                            Setup guides, scene collections, and audio chains tuned for Twitch, YouTube, and Kick —
+                            pro polish without pro-budget gear.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Optimize my OBS settings for this CPU."</em></li>
+                            <li><em>"Design a scene collection for variety streaming."</em></li>
+                            <li><em>"Fix my audio ducking and noise gate."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 06 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h10M18 8h2M4 16h2M10 16h10"/><circle cx="16" cy="8" r="2.2"/><circle cx="8" cy="16" r="2.2"/></svg>
+                            </span>
+                            <span class="cap-num">06</span>
+                        </div>
+                        <h3>Custom Filters &amp; Automation</h3>
+                        <p class="cap-desc">
+                            Repetitive tasks, down to zero. Stream Deck profiles, OBS filter chains, scripts, and
+                            webhook integrations that run your workflow for you.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Script a Stream Deck profile for my stream."</em></li>
+                            <li><em>"Automate clip alerts with webhooks."</em></li>
+                            <li><em>"Chain OBS filters for a clean chroma key."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 07 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v3M8.5 21h7"/></svg>
+                            </span>
+                            <span class="cap-num">07</span>
+                        </div>
+                        <h3>Voice &amp; Community Tone</h3>
+                        <p class="cap-desc">
+                            Find the voice, keep it consistent. Brand-voice matrices, welcome flows, moderation
+                            guidelines, and engagement formats your community actually responds to.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Define my brand voice in a one-page matrix."</em></li>
+                            <li><em>"Write welcome and moderation copy for my server."</em></li>
+                            <li><em>"Plan a month of community engagement prompts."</em></li>
+                        </ul>
+                    </article>
+
+                    <!-- 08 -->
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5v14z"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5"/><path d="M9 8h7M9 11.5h5"/></svg>
+                            </span>
+                            <span class="cap-num">08</span>
+                        </div>
+                        <h3>Research &amp; Summaries</h3>
+                        <p class="cap-desc">
+                            Primary sources in, clear answers out. Multi-document synthesis with traceable claims,
+                            executive summaries, and properly formatted citations.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">Try asking</li>
+                            <li><em>"Summarize these five articles into one brief."</em></li>
+                            <li><em>"Compare sources and flag the conflicts."</em></li>
+                            <li><em>"Format citations in APA, MLA, or Chicago."</em></li>
+                        </ul>
+                    </article>
+                </div>
+
+                <!-- Core engine capabilities -->
+                <div class="core-sub reveal">
+                    <h3>Beyond the syllabus: core engine capabilities</h3>
+                </div>
+                <div class="core-grid">
+                    <div class="core-card reveal">
+                        <h4>
+                            <span class="cc-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l1.7 4.3L18 10l-4.3 1.7L12 16l-1.7-4.3L6 10l4.3-1.7L12 4z"/><path d="M19 14.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg>
+                            </span>
+                            Extended Thinking
+                        </h4>
+                        <p>A deliberate deep-reasoning mode. For plot logic, architecture decisions, and multi-step plans, Jerith can think before it answers — and show its work.</p>
+                    </div>
+                    <div class="core-card reveal">
+                        <h4>
+                            <span class="cc-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M7 9.5l3.5 3-3.5 3M12.5 15.5H17"/></svg>
+                            </span>
+                            Code, End to End
+                        </h4>
+                        <p>Writes, reviews, and debugs real code — Python, JavaScript, HTML/CSS, bash, and more. Quick fixes, working scripts, or full tools.</p>
+                    </div>
+                    <div class="core-card reveal">
+                        <h4>
+                            <span class="cc-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></svg>
+                            </span>
+                            Vision
+                        </h4>
+                        <p>Drop an image in chat. Screenshots, mockups, OBS scenes, charts — Jerith reads them and returns layout critique, error spotting, and visual feedback.</p>
+                    </div>
+                    <div class="core-card reveal">
+                        <h4>
+                            <span class="cc-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.8-3.2 8-7.5 9.5-4.3-1.5-7.5-4.7-7.5-9.5V6L12 3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>
+                            </span>
+                            Moderation Toolset
+                        </h4>
+                        <p>Discord moderation from scratch to expert: automod and filters for fresh servers, audits and hardening for veteran ones — raids, scams, escalation, appeals.</p>
+                    </div>
+                </div>
+                <p class="moe-note reveal">
+                    <strong>Under the hood: a Mixture-of-Experts (MoE) architecture.</strong> Each request routes to
+                    specialized expert networks — expert-level depth across thinking, code, vision, moderation, and
+                    all eight skill domains, while staying lean on home hardware.
+                </p>
+            </div>
+        </section>
+
+        <!-- ===================== MEMORY ===================== -->
+        <section id="memory">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Memory</span>
+                    <h2>Forgets by default. Remembers only if you say so.</h2>
+                    <p>
+                        Out of the box, Jerith forgets everything once a conversation ends. Persistence exists —
+                        as a strictly opt-in feature, never a silent one.
+                    </p>
+                </div>
+                <div class="cap-grid">
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7.5" ry="3"/><path d="M4.5 5.5v13c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-13"/><path d="M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3"/></svg>
+                            </span>
+                            <span class="mem-chip">Opt-in</span>
+                        </div>
+                        <h3>Database Memory Recall</h3>
+                        <p class="cap-desc">
+                            A structured memory store you control. With recall enabled, Jerith can pull characters,
+                            project specs, brand guidelines, and past decisions on demand — so you stop
+                            re-explaining the same context every session.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">With memory on, try asking</li>
+                            <li><em>"Pull my protagonist's lore from last month's thread."</em></li>
+                            <li><em>"What did we decide about the channel rebrand?"</em></li>
+                            <li><em>"Recall the keyword map for this series."</em></li>
+                        </ul>
+                    </article>
+                    <article class="cap-card reveal">
+                        <div class="cap-top">
+                            <span class="cap-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 4.5v4.5H8"/><path d="M3.83 9a8.5 8.5 0 1 1-.33 4"/><path d="M12 8v4l3 2"/></svg>
+                            </span>
+                            <span class="mem-chip">Opt-in</span>
+                        </div>
+                        <h3>Continuity Memory</h3>
+                        <p class="cap-desc">
+                            Long-running work that picks up where it left off. Serialized stories, multi-week
+                            content calendars, and evolving worldbuilding stay coherent across sessions, threads,
+                            and channels.
+                        </p>
+                        <ul class="cap-tries">
+                            <li class="cap-tries-label">With memory on, try asking</li>
+                            <li><em>"Continue chapter 7 from where we left off."</em></li>
+                            <li><em>"Check week 3 of my posting calendar."</em></li>
+                            <li><em>"Keep my campaign timeline consistent."</em></li>
+                        </ul>
+                    </article>
+                </div>
+                <p class="memory-default reveal">
+                    <strong>Default behavior: forget.</strong> Nothing persists outside the active conversation.
+                    Both memory features stay off until a member explicitly turns them on — and can be switched
+                    off again at any time.
+                </p>
+            </div>
+        </section>
+
+        <!-- ===================== ACCESS ===================== -->
+        <section id="access">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Access</span>
+                    <h2>Lives in Discord. Opens by invitation.</h2>
+                    <p>
+                        During early alpha, Jerith isn't a website or an app — it's a member of the community.
+                        It runs inside private Discord servers, where creators already work together.
+                    </p>
+                </div>
+                <div class="access-grid">
+                    <div class="steps">
+                        <div class="step reveal">
+                            <div class="step-num">01</div>
+                            <div>
+                                <h3>Get an invite</h3>
+                                <p>
+                                    Membership is private and invite-based. Ask a current community member to vouch
+                                    for you — that's the whole process while we stay small on purpose.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="step reveal">
+                            <div class="step-num">02</div>
+                            <div>
+                                <h3>Join and get your role</h3>
+                                <p>
+                                    Once you're inside the community server, a role unlock grants access to Jerith
+                                    across channels and DMs. No passwords, no dashboards, nothing to install.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="step reveal">
+                            <div class="step-num">03</div>
+                            <div>
+                                <h3>Create together</h3>
+                                <p>
+                                    Mention Jerith in a thread to brainstorm, draft, research, or automate. Long
+                                    projects live in threads, so nothing gets lost between sessions.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <aside class="why-card reveal">
+                        <div class="why-head">
+                            <span class="discord-mark" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+                            </span>
+                            <h3>Why Discord-first?</h3>
+                        </div>
+                        <ul>
+                            <li>Works where creators already collaborate — no new app to learn</li>
+                            <li>Threads keep long-running projects organized and searchable</li>
+                            <li>Server roles gate access — no accounts, no credentials</li>
+                            <li>Every conversation stays inside the private community</li>
+                        </ul>
+                        <a class="btn btn-discord" href="https://discord.gg/kprtABzarB" style="align-self: flex-start;">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+                            Request an Invite
+                        </a>
+                        <p class="why-note">
+                            There is no public API, web app, or signup flow. If anyone offers "public access" to
+                            Jerith, it isn't us.
+                        </p>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== JERITH COIN ===================== -->
+        <section id="coin">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">⛏ Jerith Coin (JER)</span>
+                    <h2>A coin minted by talking to Jerith</h2>
+                    <p>
+                        Jerith Coin is the community currency of the fleet: a real proof-of-work chain —
+                        JerithChain — where new coins are minted by conversations with Jerith, every
+                        balance is an on-chain signed transaction, and the whole node software is open source.
+                        <strong>Now in v1.1</strong> — a single canonical validator, greatest-cumulative-work
+                        fork resolution, peer gossip between independent nodes, an offline chain-audit tool
+                        (<code>verify-chain</code>), and an exchange-ready machine RPC with Discord-free
+                        infrastructure wallets. Same economics, same address format, harder guarantees —
+                        details in the <a href="/whitepaper.html">whitepaper §v1.1</a>.
+                    </p>
+                </div>
+                <div class="fleet-total reveal">
+                    <div><div class="ft-value">1,000,000,000</div><div class="ft-label">JER max supply</div></div>
+                    <div><div class="ft-value">50 JER</div><div class="ft-label">Block reward (halving)</div></div>
+                    <div><div class="ft-value">2 JER</div><div class="ft-label">Per-message mining chance</div></div>
+                    <div><div class="ft-value">0.1 JER</div><div class="ft-label">Flat transfer fee (burned)</div></div>
+                </div>
+                <div class="ref-grid">
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">01</span>The spec</h3>
+                        <ul>
+                            <li><strong>Chain:</strong> JerithChain — SHA-256 proof-of-work at 18-bit difficulty, retargeting every 20 blocks toward ~60-second blocks</li>
+                            <li><strong>Supply:</strong> 1,000,000,000 JER hard cap · 200,000,000 premined at genesis to the founder · rewards halve every 210,000 blocks</li>
+                            <li><strong>Transfers:</strong> Ed25519-signed transactions, 0.1 JER fee burned on every send — balances are derived purely from the chain</li>
+                            <li><strong>Public record:</strong> live stats and the full ledger are on the <a href="/explorer.html">chain explorer</a> · full specification in the <a href="/whitepaper.html">technical whitepaper</a></li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">02</span>Mining</h3>
+                        <ul>
+                            <li><strong>Talk to mine:</strong> DMs or any server Jerith is in — every message has a chance to mint 2 JER for the sender</li>
+                            <li><strong>Explicit mining:</strong> ask Jerith to mine for the full block reward (~50 JER), throttled by cooldowns — 5 minutes after a success, 3 minutes after a miss</li>
+                            <li><strong>Opt-in by default:</strong> opt out and your would-be rewards flow to the community pool instead — your balance is never touched</li>
+                            <li><strong>Check anytime:</strong> just ask "how much JER do I have?" in any conversation</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">03</span>Wallets &amp; security</h3>
+                        <ul>
+                            <li><strong>One wallet per Discord account</strong> — created automatically on first interaction; balance and history survive account moves via key export</li>
+                            <li><strong>Your keys:</strong> optional password + TOTP 2FA guard key export, wallet rebinding, and large sends; small sends auto-sign within a daily cap</li>
+                            <li><strong>Private keys in DMs only</strong> — never in servers; export is rate-limited and always confirmed with 2FA</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">04</span>Run your own node</h3>
+                        <ul>
+                            <li><strong>Open source:</strong> the whole chain is <a href="https://github.com/ParadoxFuzzle/jerithchain" target="_blank" rel="noopener">on GitHub</a> — clone, pip install, run</li>
+                            <li><strong>AI-agent skill:</strong> give your own OpenClaw agent a JER wallet, sends, and mining — <a href="https://clawhub.ai/paradoxfuzzle/skills/jerithchain" target="_blank" rel="noopener">jerithchain on ClawHub</a> · <code>openclaw skills install jerithchain</code></li>
+                            <li><strong>Any machine:</strong> plain Python + SQLite; the fleet's own ledger is mirrored read-only to a Jetson over TLS-synced gRPC</li>
+                            <li><strong>Mirror or explore:</strong> run a follower to mirror JerithChain anywhere, or host your own explorer</li>
+                            <li><strong>Tested:</strong> 23 tests covering crypto, proof-of-work, wallets, and 2FA ship with the repo</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== CAPABILITY REFERENCE ===================== -->
+        <section id="reference">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Capability Reference</span>
+                    <h2>Everything under the hood</h2>
+                    <p>
+                        The complete toolset as it runs in the community's servers today — for members who want
+                        the full depth, not the highlights.
+                    </p>
+                </div>
+                <div class="ref-grid">
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">01</span>Model Router &amp; Failover</h3>
+                        <ul>
+                            <li><strong>One endpoint, 16 models:</strong> a purpose-built router fronts the whole fleet through LiteLLM — chat, coding, vision, medical, and embedding lanes with per-task chains</li>
+                            <li><strong>nmonit-aware admission:</strong> the router reads live VRAM across both GPUs before dispatching and skips busy Ollama models automatically (per-model residency checks)</li>
+                            <li><strong>Task-type routing:</strong> chat → demod-nix-assistant → qwen3:4b → qwen2.5:7b → Groq 120B; coding → laguna pair → nemotron; vision → moondream → qwen3 → nemotron-omni; medical → qwen2.5:7b with an automatic care guardrail</li>
+                            <li><strong>Automatic failover</strong> down each chain when a model is busy, exhausted, or rate-limited — plus SSE streaming end to end</li>
+                            <li><strong>Self-hosted models:</strong> demod-nix-assistant, qwen3:4b, qwen2.5:7b-instruct, moondream:1.8b, nemotron-omni, qwen3-embedding:0.6b, nomic-embed-text</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">02</span>Specialized AI Tasks</h3>
+                        <ul>
+                            <li><strong>Vision pipeline:</strong> image → moondream analysis → optional Qwen refinement → stored in memory</li>
+                            <li><strong>Speech-to-text</strong> via local Whisper — no API key needed</li>
+                            <li><strong>Text-to-speech</strong> via Gemini TTS, multiple voices including Enceladus</li>
+                            <li><strong>Image generation:</strong> Cloudflare FLUX (free tier) + OpenRouter seedream-4.5</li>
+                            <li><strong>Auto-extraction:</strong> session logs → structured facts in Postgres, plus outcome memory analysis</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">03</span>Memory &amp; Knowledge (PG + pgvector)</h3>
+                        <ul>
+                            <li><strong>Fused semantic search</strong> across workspace files, docs, and session logs</li>
+                            <li><strong>Community memory:</strong> user profiles, preferences, relationship graphs</li>
+                            <li><strong>People indexing:</strong> per-user memory files with opt-in/out support</li>
+                            <li><strong>GraphRAG:</strong> knowledge graphs mapping entities and their evolution over time</li>
+                            <li><strong>Temporal memory</strong> with recency weighting; nightly workspace auto-ingestion</li>
+                            <li><strong>Mood &amp; sentiment tracking</strong> across conversations</li>
+                            <li><strong>search_all:</strong> one query across memory, outcomes, incidents, and sessions</li>
+                            <li><strong>Grounding protocol:</strong> corrections.md checked before responding to suspected drift</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">04</span>Discord &amp; Communication</h3>
+                        <ul>
+                            <li><strong>Message control:</strong> send/embed, polls, reactions, stickers, emoji uploads</li>
+                            <li><strong>Thread management,</strong> pinning, and channel navigation</li>
+                            <li><strong>Full history reads</strong> for channels and threads via the Discord API</li>
+                            <li><strong>DM/guild session isolation</strong> — security hardened</li>
+                            <li><strong>Trusted &amp; guest permission levels</strong> based on per-user opt-in</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">05</span>Automation &amp; Infrastructure</h3>
+                        <ul>
+                            <li><strong>Self-healing agent:</strong> monitors services, auto-restarts with cooldown, Discord alerts</li>
+                            <li><strong>Retry wrapper:</strong> exponential backoff for CLI tasks, JSONL logging</li>
+                            <li><strong>Session digests:</strong> daily 04:30 summary from the memory trail</li>
+                            <li><strong>Watchdog</strong> with false-page prevention (XDG propagation + 3-strike gating)</li>
+                            <li><strong>Health checks:</strong> gateway, LiteLLM, model router, explorer, snapshot publisher, all services</li>
+                            <li><strong>Redis-backed task queue</strong> for background processing</li>
+                            <li><strong>Proactive reminders</strong> via cron; reflect loops with outcome extraction</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">06</span>Development &amp; Debugging</h3>
+                        <ul>
+                            <li><strong>Python:</strong> pdb, breakpoints, post-mortem, debugpy remote attach</li>
+                            <li><strong>Node.js:</strong> node inspect, --inspect, CDP, heap/CPU profiles</li>
+                            <li><strong>tmux control:</strong> list, capture, send-keys, prompt monitoring</li>
+                            <li><strong>Browser automation:</strong> multi-step flows, login checks, tab management</li>
+                            <li><strong>Git/GitHub:</strong> PR creation, CI checks, issue triage, review comments</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">07</span>System Administration</h3>
+                        <ul>
+                            <li><strong>Docker Compose</strong> orchestration</li>
+                            <li><strong>File operations</strong> (workspace-scoped)</li>
+                            <li><strong>SSH/network diagnostics:</strong> nmap, port checks</li>
+                            <li><strong>Health audits:</strong> SSH, firewall, updates, backups, disk encryption</li>
+                            <li><strong>Cloud image baking</strong> and management</li>
+                            <li><strong>Portal management</strong> for local HTTP server exposure</li>
+                            <li><strong>Skill management via ClawHub:</strong> install, update, uninstall, publish</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">08</span>Content &amp; Creative</h3>
+                        <ul>
+                            <li><strong>Diagrams &amp; whiteboards:</strong> SVG/HTML, Excalidraw-style</li>
+                            <li><strong>PDF editing</strong> via nano-pdf CLI</li>
+                            <li><strong>YouTube Live Chat</strong> integration for game control</li>
+                            <li><strong>Blogger API</strong> for blog post management</li>
+                            <li><strong>130+ red panda GIFs</strong> via indexed repository</li>
+                            <li><strong>Music/soundtrack generation</strong> (lyrics-only handled as text)</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">09</span>Research &amp; Data</h3>
+                        <ul>
+                            <li><strong>Web search + content extraction</strong> to readable markdown</li>
+                            <li><strong>Brave Search</strong> integration</li>
+                            <li><strong>Background research cycles</strong> with topic queues</li>
+                            <li><strong>Database access:</strong> PostgreSQL (pgvector), sqlite3, redis-cli</li>
+                            <li><strong>Webhooks:</strong> GitHub → Discord configuration</li>
+                            <li><strong>Google integrations:</strong> Gmail, YouTube analytics, Blogger</li>
+                        </ul>
+                    </article>
+                    <article class="ref-card reveal">
+                        <h3><span class="ref-num">10</span>Specialized Skills (skill_workshop)</h3>
+                        <ul>
+                            <li><strong>Blender 3D workflows:</strong> geometry nodes, materials, modeling</li>
+                            <li><strong>OS development support:</strong> spec lookup, FFI patterns, decision tracking</li>
+                            <li><strong>Model provider management:</strong> add live providers with non-interactive config</li>
+                            <li><strong>Channel configuration &amp; proofing:</strong> non-interactive one-liners</li>
+                            <li><strong>Healthcheck automation</strong></li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== ALPHA ===================== -->
+        <section id="alpha">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Early Alpha</span>
+                    <h2>Small on purpose. Feedback-shaped.</h2>
+                    <p>
+                        Jerith is in active early alpha. The core assistant is live and working daily inside the
+                        community — but depth varies by domain, behavior evolves frequently, and members'
+                        feedback decides what gets built next.
+                    </p>
+                </div>
+                <div class="alpha-grid">
+                    <div class="tier tier-live reveal">
+                        <span class="tier-tag">Deepest today</span>
+                        <h3>Fully trained depth</h3>
+                        <p>
+                            Creative storytelling, brainstorming &amp; ideation, and research &amp; summaries.
+                            These domains have the richest training and see the heaviest daily use.
+                        </p>
+                    </div>
+                    <div class="tier tier-testing reveal">
+                        <span class="tier-tag">Actively deepening</span>
+                        <h3>In active development</h3>
+                        <p>
+                            SEO &amp; content strategy, website authorship, and streaming &amp; OBS guidance.
+                            Solid today — getting noticeably sharper with every alpha cycle.
+                        </p>
+                    </div>
+                    <div class="tier tier-early reveal">
+                        <span class="tier-tag">Earliest days</span>
+                        <h3>Newest domains</h3>
+                        <p>
+                            Custom filters &amp; automation and voice &amp; community tone. Usable now, but expect
+                            the most change here as patterns and recipes accumulate.
+                        </p>
+                    </div>
+                </div>
+                <div class="alpha-principles">
+                    <div class="principle reveal">
+                        <span class="principle-icon" aria-hidden="true">⟳</span>
+                        <div>
+                            <h4>Behavior changes often</h4>
+                            <p>Responses, formats, and features are refined continuously. What works this week may work better next week.</p>
+                        </div>
+                    </div>
+                    <div class="principle reveal">
+                        <span class="principle-icon" aria-hidden="true">✉</span>
+                        <div>
+                            <h4>A direct feedback line</h4>
+                            <p>Alpha members shape the roadmap. Requests and report cards from the community drive what ships next.</p>
+                        </div>
+                    </div>
+                    <div class="principle reveal">
+                        <span class="principle-icon" aria-hidden="true">◈</span>
+                        <div>
+                            <h4>Free during alpha</h4>
+                            <p>Jerith is free for private community members throughout the alpha period. No tiers, no paywall.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== INFRASTRUCTURE ===================== -->
+        <section id="infrastructure">
+            <div class="container">
+                <div class="section-head reveal">
+                    <span class="eyebrow">Hardware</span>
+                    <h2>Seven machines. One fabric. One balance sheet.</h2>
+                    <p>
+                        Every model in the routing pool runs on hardware you could fit in a backpack — pooled
+                        into one compute fabric and one storage mount by open-source tooling. The same fabric
+                        mines Jerith Coin: when local capacity runs out, routing falls back to
+                        datacenter-backed models, transparently.
+                    </p>
+                </div>
+                <div class="fleet-grid">
+                    <article class="fleet-card reveal">
+                        <span class="fc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M9 20.5h6M12 16.5v4"/></svg>
+                        </span>
+                        <div class="fc-head"><h3>Gaming Desktop</h3><span class="fc-count">×1</span></div>
+                        <p class="fc-role">Primary workhorse</p>
+                        <div class="spec-row">
+                            <span class="spec-chip"><strong>32 GB</strong> RAM</span>
+                            <span class="spec-chip"><strong>8 GB</strong> VRAM</span>
+                            <span class="spec-chip"><strong>2.5 TB</strong> SSD</span>
+                        </div>
+                    </article>
+                    <article class="fleet-card reveal">
+                        <span class="fc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="8" rx="2"/><circle cx="17.2" cy="12" r="1"/></svg>
+                        </span>
+                        <div class="fc-head"><h3>Mac Minis</h3><span class="fc-count">×3</span></div>
+                        <p class="fc-role">Always-on service nodes</p>
+                        <div class="spec-row">
+                            <span class="spec-chip"><strong>16 GB</strong> RAM each</span>
+                            <span class="spec-chip"><strong>256 GB</strong> SSD each</span>
+                        </div>
+                    </article>
+                    <article class="fleet-card reveal">
+                        <span class="fc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 3.5V7M15 3.5V7M9 17v3.5M15 17v3.5M3.5 9H7M3.5 15H7M17 9h3.5M17 15h3.5"/></svg>
+                        </span>
+                        <div class="fc-head"><h3>Jetson Orin Nano Super</h3><span class="fc-count">×1</span></div>
+                        <p class="fc-role">Edge AI node</p>
+                        <div class="spec-row">
+                            <span class="spec-chip"><strong>8 GB</strong> VRAM</span>
+                            <span class="spec-chip"><strong>AI</strong> accelerator chips</span>
+                        </div>
+                    </article>
+                    <article class="fleet-card reveal">
+                        <span class="fc-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="5" width="15" height="10" rx="1.5"/><path d="M2.5 18.5h19"/></svg>
+                        </span>
+                        <div class="fc-head"><h3>MacBooks</h3><span class="fc-count">×5</span></div>
+                        <p class="fc-role">On-the-go nodes</p>
+                        <div class="spec-row">
+                            <span class="spec-chip"><strong>8 GB</strong> RAM each</span>
+                            <span class="spec-chip"><strong>2 GB</strong> VRAM each</span>
+                            <span class="spec-chip"><strong>2 TB</strong> SSD each</span>
+                        </div>
+                    </article>
+                </div>
+                <div class="fleet-total reveal">
+                    <div><div class="ft-value">7</div><div class="ft-label">Machines in the fleet</div></div>
+                    <div><div class="ft-value">128 GB</div><div class="ft-label">Combined RAM</div></div>
+                    <div><div class="ft-value">16 GB</div><div class="ft-label">Mining GPUs (RTX 4060 + Orin)</div></div>
+                    <div><div class="ft-value">13+ TB</div><div class="ft-label">Combined storage</div></div>
+                </div>
+                <div class="oss-grid">
+                    <article class="oss-card reveal">
+                        <h3>
+                            <span class="oss-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                            </span>
+                            nmonit — the compute fabric
+                        </h3>
+                        <p>
+                            Pools VRAM, RAM, CPU, and GPU across the fleet into one unified compute layer. A
+                            Go/gRPC control plane and Rust node agents decide where every model and job runs —
+                            feeding the model router's live capacity checks. The Jetson node also mirrors
+                            the JerithChain ledger as a read-only follower over TLS.
+                        </p>
+                        <a class="oss-link" href="https://github.com/ParadoxFuzzle/nmonit" target="_blank" rel="noopener">github.com/ParadoxFuzzle/nmonit →</a>
+                    </article>
+
+                    <article class="oss-card reveal">
+                        <h3>
+                            <span class="oss-icon" aria-hidden="true" style="display:inline-flex;align-items:center"><svg viewBox="0 0 24 24" fill="currentColor" style="width:1em;height:1em"><path d="M12 2 3 8l9 6 9-6-9-6zM3 12l9 6 9-6M3 16.5l9 6 9-6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                            jerithchain — mine JER yourself
+                        </h3>
+                        <p>
+                            The full node software behind Jerith Coin: a proof-of-work chain whose new coins
+                            are minted by talking to Jerith on Discord. Clone it, run your own node on your own
+                            hardware, mirror the public chain, or host an explorer.
+                        </p>
+                        <a class="oss-link" href="https://github.com/ParadoxFuzzle/jerithchain" target="_blank" rel="noopener">github.com/ParadoxFuzzle/jerithchain →</a>
+                    </article>
+                    <article class="oss-card reveal">
+                        <h3>
+                            <span class="oss-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                            </span>
+                            drive-nmonit — the storage mount
+                        </h3>
+                        <p>
+                            mergerfs pools each machine's drives locally; GlusterFS spans every node into one
+                            distributed volume — a single unified workspace mounted fleet-wide.
+                        </p>
+                        <a class="oss-link" href="https://github.com/ParadoxFuzzle/drive-nmonit" target="_blank" rel="noopener">github.com/ParadoxFuzzle/drive-nmonit →</a>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== PROVENANCE ===================== -->
+        <section id="provenance">
+            <div class="container">
+                <div class="section-head reveal" style="margin-left:auto;margin-right:auto;text-align:center;">
+                    <span class="eyebrow" style="justify-content:center;">Provenance</span>
+                    <h2>A training ledger you can actually read</h2>
+                    <p>
+                        Every word Jerith generates traces back to openly licensed or permission-cleared knowledge.
+                        This is the full ledger of what trained it — and what did not.
+                    </p>
+                </div>
+                <div class="provenance-card reveal">
+                    <div class="ledger-row">
+                        <div class="ledger-label">
+                            <span class="name">Public domain works</span>
+                            <span class="pct">42%</span>
+                        </div>
+                        <p class="ledger-desc">Literature, poetry, and reference texts whose copyrights have expired.</p>
+                        <div class="bar-track"><div class="bar-fill" style="width:42%"></div></div>
+                    </div>
+                    <div class="ledger-row">
+                        <div class="ledger-label">
+                            <span class="name">Open source code</span>
+                            <span class="pct">28%</span>
+                        </div>
+                        <p class="ledger-desc">Permissively and copyleft-licensed source code, documentation, and standards.</p>
+                        <div class="bar-track"><div class="bar-fill" style="width:28%"></div></div>
+                    </div>
+                    <div class="ledger-row">
+                        <div class="ledger-label">
+                            <span class="name">Freely shared resources</span>
+                            <span class="pct">30%</span>
+                        </div>
+                        <p class="ledger-desc">Free online books and materials included with the author's permission.</p>
+                        <div class="bar-track"><div class="bar-fill" style="width:30%"></div></div>
+                    </div>
+                    <p class="ledger-note">
+                        No scraped copyrighted corpora. No pirated datasets. The models in the routing pool run on the
+                        two-GPU home fabric — no datacenter required for core operation. Datacenter-backed
+                        fallbacks are part of the design and named below. Jerith AI is accountable to its
+                        sources by design.
+                    </p>
+                </div>
+                <div class="provenance-card reveal" style="margin-top: 24px;">
+                    <h3 class="prov-h3">The model ecosystem, stated in full</h3>
+                    <p class="prov-lede">
+                        Transparency doesn't stop at training data. Here is every layer of model Jerith uses —
+                        including the ones that reach outside the home fleet.
+                    </p>
+                    <div class="model-row">
+                        <span class="model-name">Model router (this fleet)</span>
+                        <span class="model-desc">One endpoint, 16 models — chat, coding, vision, medical, and embedding lanes. Reads live VRAM from nmonit and shifts load across both GPUs before reaching outside.</span>
+                        <span class="model-chip chip-custom">Router</span>
+                    </div>
+                    <div class="model-row">
+                        <span class="model-name">Open-weight locals</span>
+                        <span class="model-desc">demod-nix-assistant · qwen3:4b · qwen2.5:7b-instruct · moondream:1.8b · nemotron-omni · qwen3-embedding · nomic-embed — running on the two-GPU fabric via Ollama + LiteLLM.</span>
+                        <span class="model-chip chip-local">Local</span>
+                    </div>
+                    <div class="model-row">
+                        <span class="model-name">OpenRouter + Groq</span>
+                        <span class="model-desc">Datacenter-backed break-glass capacity at the end of each routing lane — used transparently, named on every reply, only when local models are exhausted or rate-limited.</span>
+                        <span class="model-chip chip-fallback">Fallback</span>
+                    </div>
+                    <div class="model-row">
+                        <span class="model-name">Jerith Coin (JER)</span>
+                        <span class="model-desc">The fleet's own proof-of-work coin — mined by talking to Jerith, spendable between members, fully on-chain. Specs below.</span>
+                        <span class="model-chip chip-local">⛏ JER</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== FAQ ===================== -->
+        <section id="faq">
+            <div class="container">
+                <div class="section-head reveal" style="margin-left:auto;margin-right:auto;text-align:center;">
+                    <span class="eyebrow" style="justify-content:center;">FAQ</span>
+                    <h2>Questions, answered</h2>
+                </div>
+                <div class="faq-list">
+                    <details class="faq-item reveal" name="faq">
+                        <summary>How do I get access to Jerith AI?</summary>
+                        <p class="faq-body">
+                            Jerith runs inside private community Discord servers, and access is invite-based during
+                            alpha. Ask a current member to vouch for you, join the server, and a role unlock gives
+                            you access across channels and DMs.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>Is there a public signup, app, or API?</summary>
+                        <p class="faq-body">
+                            Not right now. Alpha access is Discord-only for the private community. There is no
+                            public API, web app, or signup flow — if someone offers "public access" to Jerith, it
+                            isn't us.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>Does Jerith remember previous conversations?</summary>
+                        <p class="faq-body">
+                            By default, no — outside the active conversation, Jerith forgets. Two memory features,
+                            Database Memory Recall and Continuity Memory, exist as opt-in options only: nothing is
+                            stored across sessions until a member explicitly enables them, and they can be
+                            switched off again at any time.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>What does "early alpha" actually mean?</summary>
+                        <p class="faq-body">
+                            The assistant is live and used daily, but it's still forming. Depth varies by domain,
+                            behavior and features change frequently, and community feedback directly drives the
+                            roadmap. Expect noticeable improvements between visits.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>What does it cost?</summary>
+                        <p class="faq-body">
+                            Nothing during alpha. Jerith is free for members of the private community throughout
+                            the alpha period.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>What does "Mixture-of-Experts" mean?</summary>
+                        <p class="faq-body">
+                            MoE is an architecture with many specialized expert networks behind a router. Each
+                            request activates only the experts relevant to it, giving expert-level depth across
+                            many domains without proportional compute — part of how Jerith stays sharp and
+                            low-footprint.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>What is Jerith Coin (JER) and how do I mine it?</summary>
+                        <p class="faq-body">
+                            JER is the community coin of Jerith AI — a real proof-of-work chain
+                            (JerithChain) capped at 1 billion coins. Every message you send Jerith has a
+                            chance to mine 2 JER, and you can explicitly mine for a 50-JER block reward
+                            (a few minutes' cooldown between attempts). Ask Jerith "how much JER do I
+                            have" any time — wallets are one-per-Discord-account, secured with optional
+                            password + 2FA, and fully on-chain. The node software is open source on
+                            GitHub if you want to run your own node.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>What hardware does Jerith actually run on?</summary>
+                        <p class="faq-body">
+                            Seven machines: a gaming desktop (RTX 4060), three Mac Minis, an NVIDIA Jetson Orin
+                            Nano Super, and five MacBooks — pooled into one compute fabric by nmonit and one
+                            storage mount by drive-nmonit. The fabric runs the model pool and mines Jerith
+                            Coin; a read-only chain ledger mirror lives on the Jetson.
+                        </p>
+                    </details>
+                    <details class="faq-item reveal" name="faq">
+                        <summary>Is Jerith fully local?</summary>
+                        <p class="faq-body">
+                            Local-first, not local-only. The full 16-model routing pool runs on the two-GPU home
+                            fabric (Ollama behind LiteLLM). A purpose-built model router picks the lane per
+                            request — chat, coding, vision, medical, embeddings — and reads live VRAM from
+                            nmonit before dispatching. When local models are exhausted or rate-limited, the
+                            chain transparently reaches datacenter-backed models via OpenRouter and Groq.
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===================== FINAL CTA ===================== -->
+        <section>
+            <div class="container">
+                <div class="final-cta reveal">
+                    <h2>Creating in private?<br>Bring Jerith into your server.</h2>
+                    <p>
+                        Join the private community, unlock your role, put a full creative staff to work in the
+                        place you already work — and start mining ⛏ JER with every conversation.
+                    </p>
+                    <div class="hero-ctas">
+                        <a class="btn btn-discord" href="https://discord.gg/kprtABzarB">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.317 4.369a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.891.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.095 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg>
+                            Request an Invite
+                        </a>
+                        <a class="btn btn-ghost" href="#capabilities">See What It Can Do</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <a href="#top" class="brand">
+                        <span class="brand-mark" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="currentColor"><ellipse cx="12" cy="15.8" rx="4.8" ry="4"/><ellipse cx="5.4" cy="10.6" rx="2" ry="2.6" transform="rotate(-20 5.4 10.6)"/><ellipse cx="9.5" cy="7.4" rx="2" ry="2.7" transform="rotate(-8 9.5 7.4)"/><ellipse cx="14.5" cy="7.4" rx="2" ry="2.7" transform="rotate(8 14.5 7.4)"/><ellipse cx="18.6" cy="10.6" rx="2" ry="2.6" transform="rotate(20 18.6 10.6)"/></svg>
+                        </span>
+                        Jerith AI
+                    </a>
+                    <p class="footer-blurb">
+                        Jerith AI is a Discord-based assistant serving a private community of content creators —
+                        helping with creative writing, ideation, SEO, websites, streaming setups, automation,
+                        community voice, and research. Currently in early alpha, accessible by invitation only.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h4>Explore</h4>
+                    <a href="#capabilities">Capabilities</a>
+                    <a href="#memory">Memory &amp; Privacy</a>
+                    <a href="#reference">Capability Reference</a>
+                    <a href="#infrastructure">Hardware Fleet</a>
+                    <a href="#access">Access via Discord</a>
+                    <a href="#alpha">Early Alpha</a>
+                    <a href="#provenance">Training Provenance</a>
+                    <a href="#faq">FAQ</a>
+                    <a href="https://clawhub.ai/paradoxfuzzle/skills/jerithchain" target="_blank" rel="noopener">JER Skill on ClawHub ↗</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>© 2026 Jerith AI. All rights reserved.</span>
+                <span>
+                    Trained solely on public domain works, open source code, and freely shared resources used with
+                    author permission. This site is informational, for the private users of Jerith AI.
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Sticky nav border on scroll
+        const nav = document.getElementById('nav');
+        const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 8);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+
+        // Reveal-on-scroll animations
+        const io = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('in');
+                    io.unobserve(entry.target);
+                }
+            }
+        }, { threshold: 0.12 });
+        document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+    </script>
+</body>
+</html>
