@@ -156,12 +156,37 @@ def retarget(prev_window_difficulty: int, actual_dt: int,
     return max(MIN_DIFFICULTY_BITS, min(MAX_DIFFICULTY_BITS, new_bits))
 
 
+def expected_difficulty(rows) -> int:
+    """Single source of truth for retargeting. `rows` is the last
+    RETARGET_INTERVAL+1 (height, timestamp, difficulty) tuples, oldest
+    first; rows[-1] must be the chain tip. Returns the difficulty the
+    NEXT block must satisfy. Used by Ledger.next_difficulty and the
+    canonical validator so they can never diverge."""
+    if not rows:
+        return GENESIS_DIFFICULTY
+    height = rows[-1][0]
+    diff = int(rows[-1][2])
+    nxt = int(height) + 1
+    if nxt % RETARGET_INTERVAL != 0 or len(rows) < RETARGET_INTERVAL + 1:
+        return diff
+    window = rows[-(RETARGET_INTERVAL + 1):]
+    actual_dt = int(window[-1][1]) - int(window[0][1])
+    expected = TARGET_BLOCK_SECONDS * RETARGET_INTERVAL
+    return retarget(diff, actual_dt, expected)
+
+
 def reward_for_height(height: int) -> int:
     """Halving every 210k blocks, floor 1 uJ. Pure — no global mutation."""
     r = MAX_BLOCK_REWARD
     for _ in range(height // 210_000):
         r = max(1, r // 2)
     return r
+
+
+def block_work(difficulty_bits: int) -> int:
+    """Expected hashes for one block at this difficulty: 2^bits. Cumulative
+    chain work is the sum over blocks — the fork-selection rule (v1.1 §7)."""
+    return 1 << int(difficulty_bits)
 
 
 def meets_difficulty(h: bytes, difficulty_bits: int) -> bool:
@@ -368,26 +393,13 @@ class Ledger:
         return int(row[3]) if row else GENESIS_DIFFICULTY
 
     def next_difficulty(self) -> int:
-        """Difficulty for the upcoming block. On retarget boundaries the new
-        value derives from the last window's real timestamps; otherwise the
-        tip's difficulty carries forward. Ends stored from commit time."""
-        row = self.tip()
-        if not row:
-            return GENESIS_DIFFICULTY
-        height, _h, _ts, diff = row
-        nxt = int(height) + 1
-        if nxt == 0 or nxt % RETARGET_INTERVAL != 0:
-            return int(diff)
-        window_start = nxt - RETARGET_INTERVAL          # first block of window
-        end_row = self.conn.execute(
-            "SELECT timestamp FROM blocks WHERE height=?", (int(height),)).fetchone()
-        start_row = self.conn.execute(
-            "SELECT timestamp FROM blocks WHERE height=?", (window_start,)).fetchone()
-        if not end_row or not start_row:
-            return int(diff)
-        actual_dt = int(end_row[0]) - int(start_row[0])
-        expected = TARGET_BLOCK_SECONDS * RETARGET_INTERVAL
-        return retarget(int(diff), actual_dt, expected)
+        """Difficulty for the upcoming block. Delegates to
+        core.expected_difficulty (the single source of truth shared with
+        the canonical validator) over the last window+1 rows."""
+        rows = self.conn.execute(
+            "SELECT height, timestamp, difficulty FROM blocks"
+            " ORDER BY height DESC LIMIT ?", (RETARGET_INTERVAL + 1,)).fetchall()
+        return expected_difficulty(rows[::-1])
 
     def append_block(self, block: Block, difficulty: int) -> str:
         bhash = block.hash()
@@ -408,15 +420,44 @@ class Ledger:
         return bhash
 
     # -- mempool ---------------------------------------------------------------
+    # Resource limits (v1.1 §8): prevent unbounded memory/DB growth from
+    # tx flooding. Defaults are conservative for a small-network node.
+    MEMPOOL_MAX_ENTRIES = 5_000
+    MEMPOOL_MAX_TX_BYTES = 64 * 1024
+    MEMPOOL_TTL_S = 3_600            # drop unconfirmed txs after 1 hour
+    MEMPOOL_MAX_PER_SENDER = 10
+
     def mempool_add(self, tx: Tx) -> tuple[bool, str]:
         ok, why = self.validate_tx(tx)
         if not ok:
             return False, why
-        txid = hashlib.sha256(tx.payload() + bytes.fromhex(tx.signature)).hexdigest()
+        try:
+            sig = bytes.fromhex(tx.signature)
+        except ValueError:
+            return False, "bad signature hex"
+        txid = hashlib.sha256(tx.payload() + sig).hexdigest()
+        payload = json.dumps(tx.to_dict())
+        if len(payload) > self.MEMPOOL_MAX_TX_BYTES:
+            return False, "transaction too large"
+        now = int(time.time())
         with self.conn:
-            self.conn.execute(
+            cur = self.conn.cursor()
+            # per-sender cap: one outstanding spend per nonce is enough for
+            # sequential nonces; 10 allows replacement headroom
+            n = cur.execute(
+                "SELECT COUNT(*) FROM mempool WHERE json_extract(payload, '$.sender')=?",
+                (tx.sender,)).fetchone()[0]
+            if n >= self.MEMPOOL_MAX_PER_SENDER:
+                return False, "too many pending transactions for sender"
+            cur.execute(
                 "INSERT OR REPLACE INTO mempool (txid, payload, received) VALUES (?,?,?)",
-                (txid, json.dumps(tx.to_dict()), int(time.time())))
+                (txid, payload, now))
+            # TTL expiry + global size cap (evict oldest)
+            cur.execute("DELETE FROM mempool WHERE received < ?", (now - self.MEMPOOL_TTL_S,))
+            cur.execute(
+                "DELETE FROM mempool WHERE txid IN ("
+                "  SELECT txid FROM mempool ORDER BY received DESC LIMIT -1 OFFSET ?)",
+                (self.MEMPOOL_MAX_ENTRIES,))
         return True, txid
 
     def mempool_list(self, limit: int = 50) -> list[Tx]:
@@ -436,3 +477,67 @@ class Ledger:
     def chain_length(self) -> int:
         row = self.conn.execute("SELECT COUNT(*) FROM blocks").fetchone()
         return int(row[0])
+
+    # -- reorg support (v1.1 §7: greatest cumulative chain work) ----------
+    def block_at(self, height: int) -> Optional[Block]:
+        """Reconstruct a block from storage (hash-comparable). None if absent."""
+        row = self.conn.execute(
+            "SELECT height, hash, prev_hash, timestamp, miner, reward, nonce"
+            " FROM blocks WHERE height=?", (height,)).fetchone()
+        if not row:
+            return None
+        txs = [dict(zip(
+            ("kind", "sender", "recipient", "amount", "fee", "nonce",
+             "timestamp", "memo", "vk", "signature"), t))
+            for t in self.conn.execute(
+                "SELECT kind, sender, recipient, amount, fee, nonce, timestamp,"
+                " memo, vk, signature FROM txs WHERE height=?", (height,))]
+        # columns: height, hash, prev_hash, timestamp, miner, reward, nonce
+        return Block(height=row[0], prev_hash=row[2], timestamp=row[3],
+                     txs=txs, miner=row[4], reward=row[5], nonce=row[6])
+
+    def work_above(self, height: int) -> int:
+        """Cumulative chain work of all blocks above `height` (the current
+        tail). 0 if the tip is at or below height."""
+        row = self.conn.execute(
+            "SELECT COALESCE(SUM(power),0) FROM ("
+            "  SELECT difficulty, (1 << difficulty) AS power FROM blocks"
+            "  WHERE height > ?)", (height,)).fetchone()
+        return int(row[0])
+
+    def revert_to(self, height: int) -> list[dict]:
+        """Drop the chain above `height` and rebuild balances/nonces by
+        replaying the surviving txs. Returns the evicted tx dicts (the
+        caller may requeue them to the mempool). Does NOT silently repair:
+        callers must validate replacement branches first."""
+        evicted = [dict(zip(
+            ("kind", "sender", "recipient", "amount", "fee", "nonce",
+             "timestamp", "memo", "vk", "signature"), t))
+            for t in self.conn.execute(
+                "SELECT kind, sender, recipient, amount, fee, nonce, timestamp,"
+                " memo, vk, signature FROM txs WHERE height > ?", (height,))]
+        locked = {r[0]: int(r[1]) for r in self.conn.execute(
+            "SELECT address, locked FROM balances WHERE locked != 0")}
+        with self.conn:
+            cur = self.conn.cursor()
+            cur.execute("DELETE FROM blocks WHERE height > ?", (height,))
+            cur.execute("DELETE FROM txs WHERE height > ?", (height,))
+            cur.execute("DELETE FROM balances")
+            for t in self.conn.execute(
+                    "SELECT kind, sender, recipient, amount, fee, nonce"
+                    " FROM txs ORDER BY height, rowid"):
+                kind, sender, recipient, amount, fee, nonce = t
+                if kind == "spend":
+                    cur.execute(
+                        "INSERT INTO balances (address, balance, nonce, locked)"
+                        " VALUES (?, ?, ?, 0) ON CONFLICT(address) DO UPDATE SET"
+                        " balance = balance - ?, nonce = ?",
+                        (sender, -amount - fee, nonce + 1, amount + fee,
+                         nonce + 1))
+                    self._credit(cur, recipient, amount)
+                else:
+                    self._credit(cur, recipient, amount)
+            for addr, lk in locked.items():
+                cur.execute("UPDATE balances SET locked=? WHERE address=?",
+                            (lk, addr))
+        return evicted

@@ -2,7 +2,11 @@ syntax = "proto3";
 
 package jerithsync;
 
-// Server-streaming chain topology: host pushes blocks to followers.
+// JerithChain v1.1 peer protocol. Backwards compatible with v1.0
+// ChainSync (same field numbers on existing messages); adds gossip
+// RPCs so independent nodes exchange transactions and blocks and
+// resolve forks by greatest cumulative chain work.
+
 service ChainSync {
   // Stream all blocks from `from_height` onward, then stay open and push
   // new blocks as they are appended. Reconnect-safe: followers track last
@@ -10,6 +14,15 @@ service ChainSync {
   rpc StreamBlocks(SyncRequest) returns (stream SyncBlock);
   // One-shot status for monitoring/lag checks.
   rpc GetStatus(SyncStatusRequest) returns (SyncStatus);
+  // Submit a signed transaction for relay + inclusion (v1.1 gossip).
+  rpc SubmitTransaction(SubmitTxRequest) returns (SubmitTxResponse);
+  // Submit a mined block; accepted only if it extends or beats the local
+  // chain by cumulative work (validated before anything is persisted).
+  rpc SubmitBlock(SubmitBlockRequest) returns (SubmitBlockResponse);
+  // Current mempool snapshot (v1.1).
+  rpc GetMempool(GetMempoolRequest) returns (MempoolSnapshot);
+  // Peer diagnostics (v1.1): height, tip, work, protocol version.
+  rpc GetNetworkInfo(NetworkInfoRequest) returns (NetworkInfo);
 }
 
 message SyncRequest {
@@ -36,4 +49,49 @@ message SyncStatus {
   string tip_hash = 2;
   uint32 difficulty = 3;
   int64 uptime_s = 4;
+}
+
+// ---- v1.1 gossip ----
+
+message SubmitTxRequest {
+  bytes tx_json = 1;          // canonical tx dict JSON
+}
+
+message SubmitTxResponse {
+  bool accepted = 1;
+  string txid = 2;
+  string reason = 3;
+}
+
+message SubmitBlockRequest {
+  bytes block_json = 1;       // block dict JSON (height, prev_hash, ...)
+}
+
+message SubmitBlockResponse {
+  bool accepted = 1;          // true: extended or reorged onto local chain
+  string reason = 2;          // rejection code or "ok"
+  uint64 tip_height = 3;
+  string tip_hash = 4;
+}
+
+message GetMempoolRequest {
+  uint32 limit = 1;           // 0 = default 500
+}
+
+message MempoolSnapshot {
+  repeated bytes tx_json = 1;
+  uint32 size = 2;
+}
+
+message NetworkInfoRequest {}
+
+message NetworkInfo {
+  uint64 height = 1;
+  string tip_hash = 2;
+  uint32 difficulty = 3;
+  uint64 chain_work = 4;      // cumulative work above genesis
+  uint32 mempool_size = 5;
+  string protocol_version = 6; // e.g. "1.1"
+  string software_version = 7; // e.g. "1.1.0"
+  int64 uptime_s = 8;
 }

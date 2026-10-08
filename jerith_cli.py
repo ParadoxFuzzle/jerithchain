@@ -17,7 +17,18 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 NODE = os.environ.get("JERITH_NODE", "http://127.0.0.1:8300")
-TOKEN = os.environ.get("JERITH_TOKEN") or (BASE / "keys" / "api.token").read_text().strip()
+
+
+def _load_token() -> str:
+    """Lazy so offline commands (verify-chain) work on a fresh machine."""
+    env = os.environ.get("JERITH_TOKEN")
+    if env:
+        return env
+    p = BASE / "keys" / "api.token"
+    return p.read_text().strip() if p.exists() else ""
+
+
+TOKEN = _load_token()
 
 
 def call(method: str, path: str, body: dict | None = None) -> dict:
@@ -36,6 +47,38 @@ def call(method: str, path: str, body: dict | None = None) -> dict:
         except Exception:
             detail = ""
         return {"error": f"HTTP {e.code}", "detail": detail}
+
+
+def _verify_chain(data_dir: Path, as_json: bool) -> int:
+    """Rebuild and validate chain state from genesis, offline. Reports the
+    first invalid block. Exit 0 = VALID, 1 = INVALID, 2 = no chain found."""
+    import sqlite3
+
+    import jerith_validate
+
+    db_path = data_dir / "jerith.db"
+    if not db_path.exists():
+        print(f"RESULT: INVALID\nReason: no chain database at {db_path}")
+        return 2
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    print("Chain verification started")
+    try:
+        rep = jerith_validate.replay_chain(conn)
+    except jerith_validate.ValidationError as e:
+        print(f"Genesis: OK" if e.code != "empty_chain" else "Genesis: MISSING")
+        print(f"RESULT: INVALID\nReason: {e.reason}")
+        return 1
+    finally:
+        conn.close()
+    print(f"Genesis: OK")
+    print(f"Blocks checked: {rep['blocks_checked']}")
+    print(f"Transactions checked: {rep['txs_checked']}")
+    print(f"Supply emitted: {rep['emitted_uj']/1e6:,.1f} JER")
+    print(f"Burned (fees): {rep['burned_uj']/1e6:,.1f} JER")
+    print(f"Circulating (balances): {rep['circulating_uj']/1e6:,.1f} JER")
+    print(f"Tip: {rep['tip']}")
+    print("RESULT: VALID" if rep["supply_ok"] else "RESULT: INVALID\nReason: supply exceeds maximum")
+    return 0 if rep["supply_ok"] else 1
 
 
 def fmt_bal(d: dict) -> str:
@@ -128,8 +171,17 @@ def main() -> int:
     p = sub.add_parser("block")
     p.add_argument("height", type=int)
 
+    p = sub.add_parser("verify-chain",
+                       help="OFFLINE: replay and validate the whole chain "
+                            "from genesis (no node required)")
+    p.add_argument("--data-dir", default=os.environ.get(
+        "JERITH_DATA_DIR", str(BASE / "data")))
+
     args = ap.parse_args()
     d = args.__dict__
+
+    if args.cmd == "verify-chain":
+        return _verify_chain(Path(d["data_dir"]), as_json=args.json)
 
     if args.cmd == "balance":
         out = call("GET", f"/balance?discord_id={d['discord_id']}")

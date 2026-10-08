@@ -26,7 +26,11 @@ if _version_not_supported:
 
 
 class ChainSyncStub(object):
-    """Server-streaming chain topology: host pushes blocks to followers.
+    """JerithChain v1.1 peer protocol. Backwards compatible with v1.0
+    ChainSync (same field numbers on existing messages); adds gossip
+    RPCs so independent nodes exchange transactions and blocks and
+    resolve forks by greatest cumulative chain work.
+
     """
 
     def __init__(self, channel):
@@ -45,10 +49,34 @@ class ChainSyncStub(object):
                 request_serializer=jerith__sync__pb2.SyncStatusRequest.SerializeToString,
                 response_deserializer=jerith__sync__pb2.SyncStatus.FromString,
                 _registered_method=True)
+        self.SubmitTransaction = channel.unary_unary(
+                '/jerithsync.ChainSync/SubmitTransaction',
+                request_serializer=jerith__sync__pb2.SubmitTxRequest.SerializeToString,
+                response_deserializer=jerith__sync__pb2.SubmitTxResponse.FromString,
+                _registered_method=True)
+        self.SubmitBlock = channel.unary_unary(
+                '/jerithsync.ChainSync/SubmitBlock',
+                request_serializer=jerith__sync__pb2.SubmitBlockRequest.SerializeToString,
+                response_deserializer=jerith__sync__pb2.SubmitBlockResponse.FromString,
+                _registered_method=True)
+        self.GetMempool = channel.unary_unary(
+                '/jerithsync.ChainSync/GetMempool',
+                request_serializer=jerith__sync__pb2.GetMempoolRequest.SerializeToString,
+                response_deserializer=jerith__sync__pb2.MempoolSnapshot.FromString,
+                _registered_method=True)
+        self.GetNetworkInfo = channel.unary_unary(
+                '/jerithsync.ChainSync/GetNetworkInfo',
+                request_serializer=jerith__sync__pb2.NetworkInfoRequest.SerializeToString,
+                response_deserializer=jerith__sync__pb2.NetworkInfo.FromString,
+                _registered_method=True)
 
 
 class ChainSyncServicer(object):
-    """Server-streaming chain topology: host pushes blocks to followers.
+    """JerithChain v1.1 peer protocol. Backwards compatible with v1.0
+    ChainSync (same field numbers on existing messages); adds gossip
+    RPCs so independent nodes exchange transactions and blocks and
+    resolve forks by greatest cumulative chain work.
+
     """
 
     def StreamBlocks(self, request, context):
@@ -67,6 +95,35 @@ class ChainSyncServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SubmitTransaction(self, request, context):
+        """Submit a signed transaction for relay + inclusion (v1.1 gossip).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SubmitBlock(self, request, context):
+        """Submit a mined block; accepted only if it extends or beats the local
+        chain by cumulative work (validated before anything is persisted).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetMempool(self, request, context):
+        """Current mempool snapshot (v1.1).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetNetworkInfo(self, request, context):
+        """Peer diagnostics (v1.1): height, tip, work, protocol version.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChainSyncServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -80,6 +137,26 @@ def add_ChainSyncServicer_to_server(servicer, server):
                     request_deserializer=jerith__sync__pb2.SyncStatusRequest.FromString,
                     response_serializer=jerith__sync__pb2.SyncStatus.SerializeToString,
             ),
+            'SubmitTransaction': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitTransaction,
+                    request_deserializer=jerith__sync__pb2.SubmitTxRequest.FromString,
+                    response_serializer=jerith__sync__pb2.SubmitTxResponse.SerializeToString,
+            ),
+            'SubmitBlock': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitBlock,
+                    request_deserializer=jerith__sync__pb2.SubmitBlockRequest.FromString,
+                    response_serializer=jerith__sync__pb2.SubmitBlockResponse.SerializeToString,
+            ),
+            'GetMempool': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetMempool,
+                    request_deserializer=jerith__sync__pb2.GetMempoolRequest.FromString,
+                    response_serializer=jerith__sync__pb2.MempoolSnapshot.SerializeToString,
+            ),
+            'GetNetworkInfo': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNetworkInfo,
+                    request_deserializer=jerith__sync__pb2.NetworkInfoRequest.FromString,
+                    response_serializer=jerith__sync__pb2.NetworkInfo.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'jerithsync.ChainSync', rpc_method_handlers)
@@ -89,7 +166,11 @@ def add_ChainSyncServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class ChainSync(object):
-    """Server-streaming chain topology: host pushes blocks to followers.
+    """JerithChain v1.1 peer protocol. Backwards compatible with v1.0
+    ChainSync (same field numbers on existing messages); adds gossip
+    RPCs so independent nodes exchange transactions and blocks and
+    resolve forks by greatest cumulative chain work.
+
     """
 
     @staticmethod
@@ -136,6 +217,114 @@ class ChainSync(object):
             '/jerithsync.ChainSync/GetStatus',
             jerith__sync__pb2.SyncStatusRequest.SerializeToString,
             jerith__sync__pb2.SyncStatus.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SubmitTransaction(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/jerithsync.ChainSync/SubmitTransaction',
+            jerith__sync__pb2.SubmitTxRequest.SerializeToString,
+            jerith__sync__pb2.SubmitTxResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SubmitBlock(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/jerithsync.ChainSync/SubmitBlock',
+            jerith__sync__pb2.SubmitBlockRequest.SerializeToString,
+            jerith__sync__pb2.SubmitBlockResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetMempool(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/jerithsync.ChainSync/GetMempool',
+            jerith__sync__pb2.GetMempoolRequest.SerializeToString,
+            jerith__sync__pb2.MempoolSnapshot.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetNetworkInfo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/jerithsync.ChainSync/GetNetworkInfo',
+            jerith__sync__pb2.NetworkInfoRequest.SerializeToString,
+            jerith__sync__pb2.NetworkInfo.FromString,
             options,
             channel_credentials,
             insecure,
