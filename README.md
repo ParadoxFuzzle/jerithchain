@@ -12,6 +12,31 @@ node, mirror the chain, or host an explorer.
 - **Transactions:** Ed25519-signed, every balance change is on-chain
 - **Fees:** 0.1 JER per transfer (burned)
 
+## v1.1 — Exchange Readiness (in progress)
+
+v1.1 hardens the v1.0 chain toward third-party infrastructure without
+changing economics or the address format:
+
+- **Canonical block validator** (`jerith_validate.py`) — one implementation
+  of every consensus rule, used by miners, followers, and replay tools.
+- **Offline chain audit**: `python3 jerith_cli.py verify-chain` replays the
+  whole chain from genesis and reports `RESULT: VALID/INVALID`.
+- **Follower validation**: received blocks are fully validated before
+  anything is persisted; peer-supplied difficulty is never trusted.
+- **Greatest-work fork selection** (`jerith_reorg.py`): competing branches
+  resolve by cumulative `Σ 2^difficulty`; ties keep the current chain.
+- **Peer gossip**: `SubmitTransaction` / `SubmitBlock` / `GetMempool` /
+  `GetNetworkInfo` over gRPC, static `peers.json`, TLS + token auth.
+- **Mempool resource limits**: 5,000 entries, 64 KiB/tx, 1 h TTL,
+  10 per sender.
+- **Exchange RPC** (`/x/*`, `EXCHANGE_INTEGRATION.md`): infrastructure
+  wallets with no Discord identity, deposit/withdrawal workflows,
+  confirmation policy (20 standard).
+
+See [NETWORK.md](NETWORK.md) for parameters and the honest decentralization
+status, and [EXCHANGE_INTEGRATION.md](EXCHANGE_INTEGRATION.md) for the
+operator guide.
+
 ## Quickstart (run a node)
 
 Requirements: Python 3.10+, ~100 MB disk. Linux/macOS (Windows via WSL).
