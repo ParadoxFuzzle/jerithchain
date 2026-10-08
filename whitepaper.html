@@ -109,6 +109,7 @@
     <li><a href="#security-discussion">Security Discussion</a></li>
     <li><a href="#implementation">Implementation Status</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#v11">v1.1 — Exchange Readiness</a></li>
     <li><a href="#conclusion">Conclusion</a></li>
     <li><a href="#references">References &amp; Resources</a></li>
   </ol>
@@ -356,21 +357,83 @@ Dₙₑw     = clamp( D_prev + round(log₂ ratio) , 8 , 30 )</code></pre>
   </ul>
 </section>
 
+<section id="v11">
+  <h2>12 · v1.1 — Exchange Readiness (implemented)</h2>
+  <p>
+    v1.1 hardens the v1.0 chain for third-party infrastructure — exchange custody,
+    independent node operators, and reproducible verification — <strong>without changing
+    any economic parameter</strong>: same SHA-256 PoW, same reward and halving schedule,
+    same 0.1 JER burned fee, same address format, same Ed25519 signatures.
+  </p>
+  <h3>Canonical validation</h3>
+  <p>
+    All block rules now live in one validator module used by every component — the
+    block-producing node, followers, gossip ingestion, and the offline audit tool.
+    A received or self-mined block is fully checked (linkage, difficulty derived
+    independently from chain history, proof-of-work over the canonical serialization,
+    reward schedule, supply cap, per-transaction signature / sender / nonce / balance,
+    duplicate transaction IDs) <strong>before</strong> anything is persisted. Nothing
+    that fails validation can reach the ledger, from any source.
+  </p>
+  <h3>Chain-work fork selection</h3>
+  <p>
+    Competing branches are resolved by greatest cumulative work — the sum of
+    <code>2^difficulty_bits</code> over each chain's blocks — never by peer identity,
+    arrival time, or insertion order; exact ties keep the current chain. A candidate
+    branch is validated in full against replayed fork-point state <em>before</em> any
+    mutation, so an invalid branch can never rewrite the ledger. Transactions displaced
+    by a reorganization return to the mempool automatically; the block reward reverts
+    with its block.
+  </p>
+  <h3>Peer gossip</h3>
+  <p>
+    Nodes exchange transactions and blocks over the existing TLS-authenticated gRPC
+    transport (<code>SubmitTransaction</code>, <code>SubmitBlock</code> — a single block
+    or a whole branch — <code>GetMempool</code>, <code>GetNetworkInfo</code>). Static
+    peer configuration (<code>peers.json</code>) with per-peer TLS and bearer tokens;
+    peer-supplied difficulty is ignored — every node derives difficulty from its own
+    chain history. The mempool is bounded (5,000 entries, 64 KiB per transaction,
+    1-hour expiry, 10 per sender) so flooding cannot exhaust a node.
+  </p>
+  <h3>Exchange surface</h3>
+  <p>
+    A machine-oriented RPC (<code>/x/*</code>) with its own bearer token provides
+    infrastructure wallets that require <strong>no Discord identity</strong>: deposit
+    address generation, balance/nonce queries, transaction construction and signing,
+    broadcast, and confirmation counting. Deposits credit at a documented confirmation
+    threshold (20 ≈ 20 minutes; re-examined as third-party hashpower arrives).
+  </p>
+  <h3>Independent auditability</h3>
+  <p>
+    <code>verify-chain</code> rebuilds and validates the entire chain from genesis —
+    every block hash, proof-of-work, difficulty transition, signature, reward, and the
+    supply cap, plus stored balances/nonces versus a full replay — and prints
+    <code>RESULT: VALID</code> or the first failing height. This is the command an
+    exchange runs before trusting a node's state.
+  </p>
+  <p><em>Honest status:</em> v1.1 removes the <strong>technical</strong> requirement to
+  trust the founder node — any operator can run a validating node and the protocol
+  resolves competing branches deterministically. The network is small; block production
+  is federated, not yet permissionless. The protocol does not claim more decentralization
+  than it has.</p>
+</section>
+
 <section id="roadmap">
-  <h2>12 · Roadmap</h2>
+  <h2>13 · Roadmap</h2>
   <table>
     <thead><tr><th>Phase</th><th>Scope</th><th>Status</th></tr></thead>
     <tbody>
       <tr><td>v1.0 — Genesis</td><td>PoW chain, wallets, 2FA, agent mining, follower sync, explorer</td><td><strong>Shipped</strong></td></tr>
-      <tr><td>v1.1 — Federation</td><td>Multi-miner block authorship with independent node operators; gossip-based mempool</td><td>Design</td></tr>
-      <tr><td>v1.2 — Light clients</td><td>SPV-style headers+merkle proof verification for mobile/web wallets</td><td>Design</td></tr>
+      <tr><td>v1.1 — Exchange readiness</td><td>Canonical validator, chain-work fork rule, peer gossip, validating followers, exchange RPC, chain audit tool</td><td><strong>Shipped</strong></td></tr>
+      <tr><td>v1.2 — Federation at scale</td><td>Multiple independent block producers in daily operation; peer discovery beyond static config</td><td>Next</td></tr>
+      <tr><td>v1.3 — Light clients</td><td>SPV-style headers+merkle proof verification for mobile/web wallets</td><td>Design</td></tr>
       <tr><td>v2.0 — Governance</td><td>On-chain community treasury proposals drawn from fee burns</td><td>Research</td></tr>
     </tbody>
   </table>
 </section>
 
 <section id="conclusion">
-  <h2>13 · Conclusion</h2>
+  <h2>14 · Conclusion</h2>
   <p>
     Jerith Coin demonstrates that a community currency can reward participation without abandoning the
     auditability of a conventional chain. Its consensus is intentionally orthodox; its issuance is
@@ -380,7 +443,7 @@ Dₙₑw     = clamp( D_prev + round(log₂ ratio) , 8 , 30 )</code></pre>
 </section>
 
 <section id="references">
-  <h2>14 · References &amp; Resources</h2>
+  <h2>15 · References &amp; Resources</h2>
   <ul>
     <li>Reference node &amp; full source: <a href="https://github.com/ParadoxFuzzle/jerithchain">github.com/ParadoxFuzzle/jerithchain</a></li>
     <li>Live explorer: <a href="https://jerithai.com/explorer.html">jerithai.com/explorer.html</a> · <a href="https://paradoxfuzzle.github.io/jerithchain/">mirror</a></li>
