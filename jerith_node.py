@@ -23,6 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
 import jerith_core as core                     # noqa: E402
+import jerith_validate
+from jerith_validate import validate_block
 import jerith_wallet as sec                    # noqa: E402
 
 DATA_DIR = Path(os.environ.get("JERITH_DATA_DIR", BASE_DIR / "data"))
@@ -62,6 +64,44 @@ def audit(etype: str, discord_id: Optional[str], details: str = "") -> None:
         conn.execute("INSERT INTO events (ts, type, discord_id, details) VALUES (?,?,?,?)",
                      (int(time.time()), etype, discord_id, details))
         conn.commit()
+
+
+class _ChainState:
+    """Canonical-validator view over the live Ledger: the balance/nonce and
+    difficulty the validator sees are the chain's actual current state."""
+
+    def balance_nonce(self, address: str) -> tuple[int, int]:
+        return (ledger.balance(address), ledger.nonce(address))
+
+    def total_emitted(self) -> int:
+        return core.PREMINE + self._emitted_since_genesis()
+
+    def _emitted_since_genesis(self) -> int:
+        row = conn.execute(
+            "SELECT COALESCE(SUM(amount),0) FROM txs WHERE kind IN ('mine')").fetchone()
+        return int(row[0])
+
+    def expected_difficulty(self) -> int:
+        return ledger.next_difficulty()
+
+
+def _prev_block_view(height: int):
+    """Reconstruct the tip block (prev of the candidate) for the validator.
+    Returns None only if the chain is empty (candidate is genesis)."""
+    row = conn.execute(
+        "SELECT height, hash, prev_hash, timestamp, miner, reward, nonce"
+        " FROM blocks WHERE height=?", (height - 1,)).fetchone()
+    if not row:
+        return None
+    tx_rows = conn.execute(
+        "SELECT kind, sender, recipient, amount, fee, nonce, timestamp, memo,"
+        " vk, signature FROM txs WHERE height=?", (row[0],)).fetchall()
+    txs = [dict(zip(("kind", "sender", "recipient", "amount", "fee", "nonce",
+                     "timestamp", "memo", "vk", "signature"), t))
+           for t in tx_rows]
+    # column order: height, hash, prev_hash, timestamp, miner, reward, nonce
+    return core.Block(height=row[0], prev_hash=row[2], timestamp=row[3],
+                      txs=txs, miner=row[4], reward=row[5], nonce=row[6])
 
 
 # ------------------------------------------------------------------ auth ----
@@ -204,6 +244,14 @@ def mine_attempt(discord_id: str, source: str, guild_id: str = "",
         difficulty = ledger.next_difficulty()
         try:
             core.mine_block(block, difficulty)
+            vres = validate_block(block, _prev_block_view(block.height), _ChainState())
+            if not vres:
+                audit("block.reject", discord_id,
+                      f"self-mined reward block failed validation: "
+                      f"{vres.code}: {vres.reason}")
+                return {"ok": False, "reason": "validation_failed",
+                        "message": f"mined block failed consensus validation "
+                                   f"({vres.code})"}
             with WRITE_LOCK:
                 bhash = ledger.append_block(block, difficulty)
         except RuntimeError as e:
@@ -250,7 +298,8 @@ def resolve_recipient(to: str) -> str:
 
 def _new_block_with_txs(txs: list[core.Tx], miner: str) -> tuple[int, str]:
     """Mine a block containing txs and append it. Self-locking; RLock makes
-    nested acquisition from lock-holding routes safe."""
+    nested acquisition from lock-holding routes safe. The block must pass
+    canonical validation (same rules a follower applies) before it lands."""
     with WRITE_LOCK:
         height = ledger.next_height()
         now = int(time.time())
@@ -259,6 +308,13 @@ def _new_block_with_txs(txs: list[core.Tx], miner: str) -> tuple[int, str]:
                            reward=0, nonce=0)
         difficulty = ledger.next_difficulty()
         core.mine_block(block, difficulty)
+        vres = validate_block(block, _prev_block_view(block.height), _ChainState())
+        if not vres:
+            audit("block.reject", None, f"self-mined block failed validation: "
+                                        f"{vres.code}: {vres.reason}")
+            raise HTTPException(status_code=500,
+                                detail=f"internal error: mined block failed consensus "
+                                       f"validation ({vres.code})")
         bhash = ledger.append_block(block, difficulty)
     return height, bhash
 

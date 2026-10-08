@@ -156,6 +156,25 @@ def retarget(prev_window_difficulty: int, actual_dt: int,
     return max(MIN_DIFFICULTY_BITS, min(MAX_DIFFICULTY_BITS, new_bits))
 
 
+def expected_difficulty(rows) -> int:
+    """Single source of truth for retargeting. `rows` is the last
+    RETARGET_INTERVAL+1 (height, timestamp, difficulty) tuples, oldest
+    first; rows[-1] must be the chain tip. Returns the difficulty the
+    NEXT block must satisfy. Used by Ledger.next_difficulty and the
+    canonical validator so they can never diverge."""
+    if not rows:
+        return GENESIS_DIFFICULTY
+    height = rows[-1][0]
+    diff = int(rows[-1][2])
+    nxt = int(height) + 1
+    if nxt % RETARGET_INTERVAL != 0 or len(rows) < RETARGET_INTERVAL + 1:
+        return diff
+    window = rows[-(RETARGET_INTERVAL + 1):]
+    actual_dt = int(window[-1][1]) - int(window[0][1])
+    expected = TARGET_BLOCK_SECONDS * RETARGET_INTERVAL
+    return retarget(diff, actual_dt, expected)
+
+
 def reward_for_height(height: int) -> int:
     """Halving every 210k blocks, floor 1 uJ. Pure — no global mutation."""
     r = MAX_BLOCK_REWARD
@@ -368,26 +387,13 @@ class Ledger:
         return int(row[3]) if row else GENESIS_DIFFICULTY
 
     def next_difficulty(self) -> int:
-        """Difficulty for the upcoming block. On retarget boundaries the new
-        value derives from the last window's real timestamps; otherwise the
-        tip's difficulty carries forward. Ends stored from commit time."""
-        row = self.tip()
-        if not row:
-            return GENESIS_DIFFICULTY
-        height, _h, _ts, diff = row
-        nxt = int(height) + 1
-        if nxt == 0 or nxt % RETARGET_INTERVAL != 0:
-            return int(diff)
-        window_start = nxt - RETARGET_INTERVAL          # first block of window
-        end_row = self.conn.execute(
-            "SELECT timestamp FROM blocks WHERE height=?", (int(height),)).fetchone()
-        start_row = self.conn.execute(
-            "SELECT timestamp FROM blocks WHERE height=?", (window_start,)).fetchone()
-        if not end_row or not start_row:
-            return int(diff)
-        actual_dt = int(end_row[0]) - int(start_row[0])
-        expected = TARGET_BLOCK_SECONDS * RETARGET_INTERVAL
-        return retarget(int(diff), actual_dt, expected)
+        """Difficulty for the upcoming block. Delegates to
+        core.expected_difficulty (the single source of truth shared with
+        the canonical validator) over the last window+1 rows."""
+        rows = self.conn.execute(
+            "SELECT height, timestamp, difficulty FROM blocks"
+            " ORDER BY height DESC LIMIT ?", (RETARGET_INTERVAL + 1,)).fetchall()
+        return expected_difficulty(rows[::-1])
 
     def append_block(self, block: Block, difficulty: int) -> str:
         bhash = block.hash()
