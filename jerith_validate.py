@@ -148,9 +148,9 @@ def _validate_spend(tx, td, index: int, state, seen_txids: set):
     return True, "ok"
 
 
-def _validate_pow(blk, prev_difficulty: int) -> ValidationResult:
+def _validate_pow(blk, prev_difficulty: int, claimed_hash: str = "") -> ValidationResult:
     actual_hash = blk.hash()
-    claimed = getattr(blk, "claimed_hash", "") or ""
+    claimed = claimed_hash or ""
     if claimed and claimed != actual_hash:
         return _vfail("hash_mismatch",
                       f"claimed hash {claimed[:16]}… != recomputed {actual_hash[:16]}…")
@@ -207,7 +207,7 @@ def validate_block(blk, prev_block, state, *, check_pow: bool = True,
 
     # ---- PoW over canonical serialization ----
     if check_pow:
-        r = _validate_pow(blk, difficulty)
+        r = _validate_pow(blk, difficulty, claimed_hash)
         if not r:
             return r
 
@@ -320,8 +320,10 @@ class ReplayState:
         return core.expected_difficulty(self.last_rows)
 
 
-def replay_chain(db_conn, *, max_blocks: int | None = None) -> dict:
+def replay_chain(db_conn, *, max_blocks: int | None = None,
+                 check_pow: bool = True) -> dict:
     """Rebuild and validate chain state from genesis against a Ledger DB.
+    check_pow=False is for testnet/fabricated history without real PoW.
     Returns a report dict; raises ValidationError on the first bad block."""
     rows = db_conn.execute(
         "SELECT height, hash, prev_hash, timestamp, miner, reward, nonce, difficulty"
@@ -353,7 +355,8 @@ def replay_chain(db_conn, *, max_blocks: int | None = None) -> dict:
         if blk.hash() != stored_hash:
             raise ValidationError("hash_mismatch",
                                   f"height {height}: stored hash != canonical hash")
-        r = validate_block(blk, prev_blk, state, check_pow=(height > 0),
+        r = validate_block(blk, prev_blk, state,
+                           check_pow=(check_pow and height > 0),
                            claimed_hash=stored_hash)
         if not r:
             raise ValidationError(r.code, f"height {height}: {r.reason}")
@@ -371,6 +374,31 @@ def replay_chain(db_conn, *, max_blocks: int | None = None) -> dict:
 
     circulating = sum(v for v in state._bal.values() if v > 0) \
         - sum(-v for v in state._bal.values() if v < 0)
+
+    # stored state must match replayed state (balance + nonce)
+    stored_rows = db_conn.execute(
+        "SELECT address, balance, nonce FROM balances").fetchall()
+    stored_bal = {r[0]: int(r[1]) for r in stored_rows}
+    stored_nonce = {r[0]: int(r[2]) for r in stored_rows}
+    for addr, bal in stored_bal.items():
+        if state._bal.get(addr, 0) != bal:
+            raise ValidationError(
+                "balance_mismatch",
+                f"stored balance {bal} for {addr[:16]}… != replayed "
+                f"{state._bal.get(addr, 0)}")
+    for addr, nonce in stored_nonce.items():
+        if state._nonce.get(addr, 0) != nonce:
+            raise ValidationError(
+                "nonce_mismatch",
+                f"stored nonce {nonce} for {addr[:16]}… != replayed "
+                f"{state._nonce.get(addr, 0)}")
+    extra = set(state._bal) - set(stored_bal)
+    if extra:
+        raise ValidationError(
+            "balance_mismatch",
+            f"replayed state has balances missing from DB: "
+            f"{sorted(a[:16] + '…' for a in extra)[:5]}")
+
     return {
         "height": prev_blk.height if prev_blk else -1,
         "tip": prev_hash,
