@@ -270,6 +270,22 @@ def x_wallet_get(address: str):
                 (address,)).fetchone()[0]}
 
 
+@router.get("/address/{address}", dependencies=[Depends(require_x_token)])
+def x_address_get(address: str):
+    """Balance/nonce for ANY on-chain address (ledger-derived, no wallet
+    registration needed) — used by external clients like the OpenClaw skill
+    whose keys live client-side. 404 only if the address is malformed."""
+    if not (address.startswith("JER") and len(address) == 35):
+        raise HTTPException(status_code=404, detail="malformed JER address")
+    ld = _ledger()
+    return {"address": address, "balance_uj": ld.balance(address),
+            "nonce": ld.nonce(address),
+            "pending_mempool": _st.conn.execute(
+                "SELECT COUNT(*) FROM mempool WHERE"
+                " json_extract(payload,'$.sender')=?",
+                (address,)).fetchone()[0]}
+
+
 @router.post("/wallet/export", dependencies=[Depends(require_x_token)])
 def x_wallet_export(req: PasswordReq):
     """Requires the wallet password (set at creation via /x/wallet/setpw;
