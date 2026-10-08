@@ -183,6 +183,12 @@ def reward_for_height(height: int) -> int:
     return r
 
 
+def block_work(difficulty_bits: int) -> int:
+    """Expected hashes for one block at this difficulty: 2^bits. Cumulative
+    chain work is the sum over blocks — the fork-selection rule (v1.1 §7)."""
+    return 1 << int(difficulty_bits)
+
+
 def meets_difficulty(h: bytes, difficulty_bits: int) -> bool:
     """True if h has at least difficulty_bits leading zero bits."""
     full = difficulty_bits // 8
@@ -442,3 +448,67 @@ class Ledger:
     def chain_length(self) -> int:
         row = self.conn.execute("SELECT COUNT(*) FROM blocks").fetchone()
         return int(row[0])
+
+    # -- reorg support (v1.1 §7: greatest cumulative chain work) ----------
+    def block_at(self, height: int) -> Optional[Block]:
+        """Reconstruct a block from storage (hash-comparable). None if absent."""
+        row = self.conn.execute(
+            "SELECT height, hash, prev_hash, timestamp, miner, reward, nonce"
+            " FROM blocks WHERE height=?", (height,)).fetchone()
+        if not row:
+            return None
+        txs = [dict(zip(
+            ("kind", "sender", "recipient", "amount", "fee", "nonce",
+             "timestamp", "memo", "vk", "signature"), t))
+            for t in self.conn.execute(
+                "SELECT kind, sender, recipient, amount, fee, nonce, timestamp,"
+                " memo, vk, signature FROM txs WHERE height=?", (height,))]
+        # columns: height, hash, prev_hash, timestamp, miner, reward, nonce
+        return Block(height=row[0], prev_hash=row[2], timestamp=row[3],
+                     txs=txs, miner=row[4], reward=row[5], nonce=row[6])
+
+    def work_above(self, height: int) -> int:
+        """Cumulative chain work of all blocks above `height` (the current
+        tail). 0 if the tip is at or below height."""
+        row = self.conn.execute(
+            "SELECT COALESCE(SUM(power),0) FROM ("
+            "  SELECT difficulty, (1 << difficulty) AS power FROM blocks"
+            "  WHERE height > ?)", (height,)).fetchone()
+        return int(row[0])
+
+    def revert_to(self, height: int) -> list[dict]:
+        """Drop the chain above `height` and rebuild balances/nonces by
+        replaying the surviving txs. Returns the evicted tx dicts (the
+        caller may requeue them to the mempool). Does NOT silently repair:
+        callers must validate replacement branches first."""
+        evicted = [dict(zip(
+            ("kind", "sender", "recipient", "amount", "fee", "nonce",
+             "timestamp", "memo", "vk", "signature"), t))
+            for t in self.conn.execute(
+                "SELECT kind, sender, recipient, amount, fee, nonce, timestamp,"
+                " memo, vk, signature FROM txs WHERE height > ?", (height,))]
+        locked = {r[0]: int(r[1]) for r in self.conn.execute(
+            "SELECT address, locked FROM balances WHERE locked != 0")}
+        with self.conn:
+            cur = self.conn.cursor()
+            cur.execute("DELETE FROM blocks WHERE height > ?", (height,))
+            cur.execute("DELETE FROM txs WHERE height > ?", (height,))
+            cur.execute("DELETE FROM balances")
+            for t in self.conn.execute(
+                    "SELECT kind, sender, recipient, amount, fee, nonce"
+                    " FROM txs ORDER BY height, rowid"):
+                kind, sender, recipient, amount, fee, nonce = t
+                if kind == "spend":
+                    cur.execute(
+                        "INSERT INTO balances (address, balance, nonce, locked)"
+                        " VALUES (?, ?, ?, 0) ON CONFLICT(address) DO UPDATE SET"
+                        " balance = balance - ?, nonce = ?",
+                        (sender, -amount - fee, nonce + 1, amount + fee,
+                         nonce + 1))
+                    self._credit(cur, recipient, amount)
+                else:
+                    self._credit(cur, recipient, amount)
+            for addr, lk in locked.items():
+                cur.execute("UPDATE balances SET locked=? WHERE address=?",
+                            (lk, addr))
+        return evicted
