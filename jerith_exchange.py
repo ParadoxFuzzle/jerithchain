@@ -235,6 +235,8 @@ class BuildRawReq(BaseModel):
     to: str
     amount_uj: int
     memo: str = ""
+    vk: str = ""          # hex of the signer's Ed25519 verify key (REQUIRED
+                          # in the signed payload — must be provided up front)
 
 
 @router.post("/wallet/new", dependencies=[Depends(require_x_token)])
@@ -341,6 +343,18 @@ def x_tx_buildraw(req: BuildRawReq):
         raise HTTPException(status_code=400, detail="malformed JER recipient")
     if req.amount_uj <= 0:
         raise HTTPException(status_code=400, detail="amount_uj must be positive")
+    if not req.vk:
+        raise HTTPException(
+            status_code=400,
+            detail="vk is required: the Ed25519 verify key is part of the "
+                   "signed payload, so it must be known at build time")
+    try:
+        vk_bytes = bytes.fromhex(req.vk)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="vk must be hex")
+    if len(vk_bytes) != 32 or core.addr_from_vk(vk_bytes) != req.from_address:
+        raise HTTPException(status_code=400,
+                            detail="vk does not hash to from_address")
     ld = _ledger()
     bal = ld.balance(req.from_address)
     if bal < req.amount_uj + EXCHANGE_FEE_UJ:
@@ -352,13 +366,13 @@ def x_tx_buildraw(req: BuildRawReq):
         "amount": int(req.amount_uj), "fee": EXCHANGE_FEE_UJ,
         "nonce": ld.nonce(req.from_address),
         "timestamp": int(time.time()), "memo": (req.memo or "")[:120],
-        "vk": "", "signature": "",
+        "vk": req.vk, "signature": "",
     }
     payload = core.Tx.from_dict(unsigned).payload()
     return {"unsigned_tx": unsigned, "payload_hex": payload.hex(),
-            "note": "fill vk (hex of the 32-byte Ed25519 verify key) and "
-                    "signature (hex Ed25519 over payload_hex), then POST "
-                    "to /x/tx/sendraw"}
+            "note": "sign payload_hex with the Ed25519 secret key for vk, "
+                    "put the hex signature into unsigned_tx.signature, then "
+                    "POST to /x/tx/sendraw"}
 
 
 @router.post("/tx/sign", dependencies=[Depends(require_x_token)])
