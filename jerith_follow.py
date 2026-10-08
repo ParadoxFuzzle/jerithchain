@@ -22,6 +22,8 @@ sys.path.insert(0, str(BASE_DIR / "gen"))
 import grpc                                  # noqa: E402
 
 import jerith_core as core                   # noqa: E402
+import jerith_gossip                         # noqa: E402
+import jerith_reorg                          # noqa: E402
 import jerith_validate                       # noqa: E402
 import jerith_sync_pb2 as pb                 # noqa: E402
 import jerith_sync_pb2_grpc as pb_grpc       # noqa: E402
@@ -106,13 +108,12 @@ class FollowerChainState:
 
 def _reconstruct(blk) -> tuple[core.Block, str]:
     """Build a core.Block from a wire SyncBlock; returns (block, claimed_hash).
-    The peer's `difficulty` field is carried separately and IGNORED for
-    validation — expected difficulty is derived from local history."""
+    The peer's `difficulty` field is IGNORED for validation — expected
+    difficulty is derived from local history."""
     txs = [json.loads(r) for r in blk.tx_raw]
     b = core.Block(height=blk.height, prev_hash=blk.prev_hash,
                    timestamp=blk.timestamp, txs=txs, miner=blk.miner,
-                   reward=blk.reward_uj, nonce=blk.nonce,
-                   difficulty=blk.difficulty)
+                   reward=blk.reward_uj, nonce=blk.nonce)
     return b, blk.hash
 
 
@@ -216,16 +217,29 @@ def run() -> None:
                     if prev is None:
                         # gap in local history — reconnect to fill it
                         break
-                vres = jerith_validate.validate_block(
-                    b, prev, state, claimed_hash=claimed)
-                if not vres.ok:
-                    print(f"  REJECTED block {blk.height} from {HOST}: "
-                          f"{vres.code}: {vres.reason}", flush=True)
-                    if vres.code == "prev_hash" and blk.height > 1:
-                        # fork: our tail diverged — drop our tail, re-sync
-                        wipe_tail(conn, blk.height - 2)
-                    _mark_invalid_peer(HOST, vres.code)
-                    break   # reconnect; host will re-send
+                if b.height == local_height(conn) + 1:
+                    # plain extension: same rules as before
+                    vres = jerith_validate.validate_block(
+                        b, prev, state, claimed_hash=claimed)
+                    if not vres.ok:
+                        print(f"  REJECTED block {blk.height} from {HOST}: "
+                              f"{vres.code}: {vres.reason}", flush=True)
+                        _mark_invalid_peer(HOST, vres.code)
+                        break   # reconnect; peer will re-send
+                    apply_block(conn, blk, state.expected_difficulty())
+                    if blk.height % 25 == 0:
+                        print(f"  synced height {blk.height}", flush=True)
+                    continue
+                # competing block at an existing height: give it to the
+                # greatest-work rule (validate_branch → accept_branch);
+                # ties/losers are dropped without touching our chain
+                res = jerith_reorg.accept_branch(conn, [b])
+                if not res["accepted"]:
+                    print(f"  branch at {b.height} not accepted from {HOST}: "
+                          f"{res['reason']}", flush=True)
+                elif blk.height % 25 == 0:
+                    print(f"  reorged to height {local_height(conn)} "
+                          f"({res['reason']})", flush=True)
                 apply_block(conn, blk, state.expected_difficulty())
                 if blk.height % 25 == 0:
                     print(f"  synced height {blk.height}", flush=True)

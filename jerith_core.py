@@ -420,15 +420,44 @@ class Ledger:
         return bhash
 
     # -- mempool ---------------------------------------------------------------
+    # Resource limits (v1.1 §8): prevent unbounded memory/DB growth from
+    # tx flooding. Defaults are conservative for a small-network node.
+    MEMPOOL_MAX_ENTRIES = 5_000
+    MEMPOOL_MAX_TX_BYTES = 64 * 1024
+    MEMPOOL_TTL_S = 3_600            # drop unconfirmed txs after 1 hour
+    MEMPOOL_MAX_PER_SENDER = 10
+
     def mempool_add(self, tx: Tx) -> tuple[bool, str]:
         ok, why = self.validate_tx(tx)
         if not ok:
             return False, why
-        txid = hashlib.sha256(tx.payload() + bytes.fromhex(tx.signature)).hexdigest()
+        try:
+            sig = bytes.fromhex(tx.signature)
+        except ValueError:
+            return False, "bad signature hex"
+        txid = hashlib.sha256(tx.payload() + sig).hexdigest()
+        payload = json.dumps(tx.to_dict())
+        if len(payload) > self.MEMPOOL_MAX_TX_BYTES:
+            return False, "transaction too large"
+        now = int(time.time())
         with self.conn:
-            self.conn.execute(
+            cur = self.conn.cursor()
+            # per-sender cap: one outstanding spend per nonce is enough for
+            # sequential nonces; 10 allows replacement headroom
+            n = cur.execute(
+                "SELECT COUNT(*) FROM mempool WHERE json_extract(payload, '$.sender')=?",
+                (tx.sender,)).fetchone()[0]
+            if n >= self.MEMPOOL_MAX_PER_SENDER:
+                return False, "too many pending transactions for sender"
+            cur.execute(
                 "INSERT OR REPLACE INTO mempool (txid, payload, received) VALUES (?,?,?)",
-                (txid, json.dumps(tx.to_dict()), int(time.time())))
+                (txid, payload, now))
+            # TTL expiry + global size cap (evict oldest)
+            cur.execute("DELETE FROM mempool WHERE received < ?", (now - self.MEMPOOL_TTL_S,))
+            cur.execute(
+                "DELETE FROM mempool WHERE txid IN ("
+                "  SELECT txid FROM mempool ORDER BY received DESC LIMIT -1 OFFSET ?)",
+                (self.MEMPOOL_MAX_ENTRIES,))
         return True, txid
 
     def mempool_list(self, limit: int = 50) -> list[Tx]:

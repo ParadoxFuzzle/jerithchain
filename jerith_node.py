@@ -23,6 +23,8 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
 import jerith_core as core                     # noqa: E402
+import jerith_exchange
+import jerith_gossip as gossip
 import jerith_validate
 from jerith_validate import validate_block
 import jerith_wallet as sec                    # noqa: E402
@@ -64,6 +66,40 @@ def audit(etype: str, discord_id: Optional[str], details: str = "") -> None:
         conn.execute("INSERT INTO events (ts, type, discord_id, details) VALUES (?,?,?,?)",
                      (int(time.time()), etype, discord_id, details))
         conn.commit()
+
+
+def _peers() -> list[dict]:
+    """Static peer list (peers.json); refreshed per broadcast."""
+    try:
+        return gossip.load_peers()
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def _gossip_block(block) -> None:
+    """Fire-and-forget block relay to configured peers (never raises,
+    never blocks mining: runs on a daemon thread)."""
+    peers = _peers()
+    if not peers:
+        return
+    def _run():
+        try:
+            gossip.broadcast_block(peers, block)
+        except Exception:  # noqa: BLE001
+            pass
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _gossip_tx(tx_dict: dict) -> None:
+    peers = _peers()
+    if not peers:
+        return
+    def _run():
+        try:
+            gossip.broadcast_transaction(peers, tx_dict)
+        except Exception:  # noqa: BLE001
+            pass
+    threading.Thread(target=_run, daemon=True).start()
 
 
 class _ChainState:
@@ -111,8 +147,13 @@ def require_token(authorization: str = Header(default="")) -> None:
         raise HTTPException(status_code=401, detail="invalid or missing API token")
 
 
-app = FastAPI(title="JerithChain Node", version="1.0.0",
-              description=f"{COIN_NAME} ({TICKER}) node — internal API for the Jerith agent")
+app = FastAPI(title="JerithChain Node", version="1.1.0",
+              description=f"{COIN_NAME} ({TICKER}) node — agent API + exchange RPC")
+
+# v1.1: machine-oriented exchange surface at /x/* (separate token,
+# no Discord identity — see EXCHANGE_INTEGRATION.md)
+jerith_exchange.init_exchange(conn, KEYS_DIR, WRITE_LOCK)
+app.include_router(jerith_exchange.router)
 
 
 # ------------------------------------------------------------- user helpers --
@@ -254,6 +295,7 @@ def mine_attempt(discord_id: str, source: str, guild_id: str = "",
                                    f"({vres.code})"}
             with WRITE_LOCK:
                 bhash = ledger.append_block(block, difficulty)
+            _gossip_block(block)
         except RuntimeError as e:
             with WRITE_LOCK:
                 conn.execute("UPDATE mining_state SET last_fail=?, fail_count=fail_count+1 "
@@ -316,6 +358,7 @@ def _new_block_with_txs(txs: list[core.Tx], miner: str) -> tuple[int, str]:
                                 detail=f"internal error: mined block failed consensus "
                                        f"validation ({vres.code})")
         bhash = ledger.append_block(block, difficulty)
+    _gossip_block(block)
     return height, bhash
 
 

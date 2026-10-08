@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11jerith_sync.proto\x12\njerithsync\"7\n\x0bSyncRequest\x12\x13\n\x0b\x66rom_height\x18\x01 \x01(\x04\x12\x13\n\x0b\x66ollower_id\x18\x02 \x01(\t\"\xa4\x01\n\tSyncBlock\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x0c\n\x04hash\x18\x02 \x01(\t\x12\x11\n\tprev_hash\x18\x03 \x01(\t\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12\r\n\x05miner\x18\x05 \x01(\t\x12\x11\n\treward_uj\x18\x06 \x01(\x04\x12\r\n\x05nonce\x18\x07 \x01(\x04\x12\x12\n\ndifficulty\x18\x08 \x01(\r\x12\x0e\n\x06tx_raw\x18\t \x03(\x0c\"\x13\n\x11SyncStatusRequest\"T\n\nSyncStatus\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x10\n\x08tip_hash\x18\x02 \x01(\t\x12\x12\n\ndifficulty\x18\x03 \x01(\r\x12\x10\n\x08uptime_s\x18\x04 \x01(\x03\x32\x91\x01\n\tChainSync\x12@\n\x0cStreamBlocks\x12\x17.jerithsync.SyncRequest\x1a\x15.jerithsync.SyncBlock0\x01\x12\x42\n\tGetStatus\x12\x1d.jerithsync.SyncStatusRequest\x1a\x16.jerithsync.SyncStatusb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x11jerith_sync.proto\x12\njerithsync\"7\n\x0bSyncRequest\x12\x13\n\x0b\x66rom_height\x18\x01 \x01(\x04\x12\x13\n\x0b\x66ollower_id\x18\x02 \x01(\t\"\xa4\x01\n\tSyncBlock\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x0c\n\x04hash\x18\x02 \x01(\t\x12\x11\n\tprev_hash\x18\x03 \x01(\t\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12\r\n\x05miner\x18\x05 \x01(\t\x12\x11\n\treward_uj\x18\x06 \x01(\x04\x12\r\n\x05nonce\x18\x07 \x01(\x04\x12\x12\n\ndifficulty\x18\x08 \x01(\r\x12\x0e\n\x06tx_raw\x18\t \x03(\x0c\"\x13\n\x11SyncStatusRequest\"T\n\nSyncStatus\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x10\n\x08tip_hash\x18\x02 \x01(\t\x12\x12\n\ndifficulty\x18\x03 \x01(\r\x12\x10\n\x08uptime_s\x18\x04 \x01(\x03\"\"\n\x0fSubmitTxRequest\x12\x0f\n\x07tx_json\x18\x01 \x01(\x0c\"B\n\x10SubmitTxResponse\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\x12\x0c\n\x04txid\x18\x02 \x01(\t\x12\x0e\n\x06reason\x18\x03 \x01(\t\"(\n\x12SubmitBlockRequest\x12\x12\n\nblock_json\x18\x01 \x01(\x0c\"]\n\x13SubmitBlockResponse\x12\x10\n\x08\x61\x63\x63\x65pted\x18\x01 \x01(\x08\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x12\n\ntip_height\x18\x03 \x01(\x04\x12\x10\n\x08tip_hash\x18\x04 \x01(\t\"\"\n\x11GetMempoolRequest\x12\r\n\x05limit\x18\x01 \x01(\r\"0\n\x0fMempoolSnapshot\x12\x0f\n\x07tx_json\x18\x01 \x03(\x0c\x12\x0c\n\x04size\x18\x02 \x01(\r\"\x14\n\x12NetworkInfoRequest\"\xb3\x01\n\x0bNetworkInfo\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x10\n\x08tip_hash\x18\x02 \x01(\t\x12\x12\n\ndifficulty\x18\x03 \x01(\r\x12\x12\n\nchain_work\x18\x04 \x01(\x04\x12\x14\n\x0cmempool_size\x18\x05 \x01(\r\x12\x18\n\x10protocol_version\x18\x06 \x01(\t\x12\x18\n\x10software_version\x18\x07 \x01(\t\x12\x10\n\x08uptime_s\x18\x08 \x01(\x03\x32\xc6\x03\n\tChainSync\x12@\n\x0cStreamBlocks\x12\x17.jerithsync.SyncRequest\x1a\x15.jerithsync.SyncBlock0\x01\x12\x42\n\tGetStatus\x12\x1d.jerithsync.SyncStatusRequest\x1a\x16.jerithsync.SyncStatus\x12N\n\x11SubmitTransaction\x12\x1b.jerithsync.SubmitTxRequest\x1a\x1c.jerithsync.SubmitTxResponse\x12N\n\x0bSubmitBlock\x12\x1e.jerithsync.SubmitBlockRequest\x1a\x1f.jerithsync.SubmitBlockResponse\x12H\n\nGetMempool\x12\x1d.jerithsync.GetMempoolRequest\x1a\x1b.jerithsync.MempoolSnapshot\x12I\n\x0eGetNetworkInfo\x12\x1e.jerithsync.NetworkInfoRequest\x1a\x17.jerithsync.NetworkInfob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -39,6 +39,22 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SYNCSTATUSREQUEST']._serialized_end=276
   _globals['_SYNCSTATUS']._serialized_start=278
   _globals['_SYNCSTATUS']._serialized_end=362
-  _globals['_CHAINSYNC']._serialized_start=365
-  _globals['_CHAINSYNC']._serialized_end=510
+  _globals['_SUBMITTXREQUEST']._serialized_start=364
+  _globals['_SUBMITTXREQUEST']._serialized_end=398
+  _globals['_SUBMITTXRESPONSE']._serialized_start=400
+  _globals['_SUBMITTXRESPONSE']._serialized_end=466
+  _globals['_SUBMITBLOCKREQUEST']._serialized_start=468
+  _globals['_SUBMITBLOCKREQUEST']._serialized_end=508
+  _globals['_SUBMITBLOCKRESPONSE']._serialized_start=510
+  _globals['_SUBMITBLOCKRESPONSE']._serialized_end=603
+  _globals['_GETMEMPOOLREQUEST']._serialized_start=605
+  _globals['_GETMEMPOOLREQUEST']._serialized_end=639
+  _globals['_MEMPOOLSNAPSHOT']._serialized_start=641
+  _globals['_MEMPOOLSNAPSHOT']._serialized_end=689
+  _globals['_NETWORKINFOREQUEST']._serialized_start=691
+  _globals['_NETWORKINFOREQUEST']._serialized_end=711
+  _globals['_NETWORKINFO']._serialized_start=714
+  _globals['_NETWORKINFO']._serialized_end=893
+  _globals['_CHAINSYNC']._serialized_start=896
+  _globals['_CHAINSYNC']._serialized_end=1350
 # @@protoc_insertion_point(module_scope)
