@@ -230,6 +230,13 @@ class SendRawReq(BaseModel):
     signed_tx: dict
 
 
+class BuildRawReq(BaseModel):
+    from_address: str
+    to: str
+    amount_uj: int
+    memo: str = ""
+
+
 @router.post("/wallet/new", dependencies=[Depends(require_x_token)])
 def x_wallet_new(req: NewWalletReq):
     sk, vk = core.generate_keypair()
@@ -321,6 +328,37 @@ def x_tx_build(req: BuildReq):
             "payload_hex": payload.hex(),
             "note": "sign payload_hex with the wallet's Ed25519 key; put the"
                     " hex signature into unsigned_tx.signature"}
+
+
+@router.post("/tx/buildraw", dependencies=[Depends(require_x_token)])
+def x_tx_buildraw(req: BuildRawReq):
+    """Build an unsigned spend for ANY on-chain address (ledger nonce/fee;
+    signature left empty). For external clients that hold keys client-side
+    (OpenClaw skill, CLI/web wallets): build → sign locally → /x/tx/sendraw."""
+    if not (req.from_address.startswith("JER") and len(req.from_address) == 35):
+        raise HTTPException(status_code=404, detail="malformed JER from_address")
+    if not (req.to.startswith("JER") and len(req.to) == 35):
+        raise HTTPException(status_code=400, detail="malformed JER recipient")
+    if req.amount_uj <= 0:
+        raise HTTPException(status_code=400, detail="amount_uj must be positive")
+    ld = _ledger()
+    bal = ld.balance(req.from_address)
+    if bal < req.amount_uj + EXCHANGE_FEE_UJ:
+        raise HTTPException(status_code=400,
+                            detail=f"insufficient balance {bal} < "
+                                   f"{req.amount_uj + EXCHANGE_FEE_UJ}")
+    unsigned = {
+        "kind": "spend", "sender": req.from_address, "recipient": req.to,
+        "amount": int(req.amount_uj), "fee": EXCHANGE_FEE_UJ,
+        "nonce": ld.nonce(req.from_address),
+        "timestamp": int(time.time()), "memo": (req.memo or "")[:120],
+        "vk": "", "signature": "",
+    }
+    payload = core.Tx.from_dict(unsigned).payload()
+    return {"unsigned_tx": unsigned, "payload_hex": payload.hex(),
+            "note": "fill vk (hex of the 32-byte Ed25519 verify key) and "
+                    "signature (hex Ed25519 over payload_hex), then POST "
+                    "to /x/tx/sendraw"}
 
 
 @router.post("/tx/sign", dependencies=[Depends(require_x_token)])
