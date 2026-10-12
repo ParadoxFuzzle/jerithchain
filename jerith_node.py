@@ -525,6 +525,31 @@ def api_history(discord_id: str, limit: int = 10):
             "transactions": ledger.history(user.address, min(limit, 50))}
 
 
+@app.get("/mystate", dependencies=[Depends(require_token)])
+def api_mystate(limit: int = 100):
+    """Bulk mining-state leaderboard: top users by total mined.
+
+    Read-only view over mining_state, biggest total_mined first.
+    totals are micro-JER (uj) and JER for convenience; `entries` is
+    capped at `limit` (max 200).
+    """
+    limit = max(1, min(limit, 200))
+    rows = conn.execute(
+        """SELECT discord_id, success_count, fail_count, total_mined
+           FROM mining_state WHERE success_count > 0
+           ORDER BY total_mined DESC, success_count DESC, discord_id ASC
+           LIMIT ?""",
+        (limit,)).fetchall()
+    return {
+        "entries": [
+            {"discord_id": r[0], "wins": r[1], "fails": r[2],
+             "total_mined_uj": r[3], "total_mined_jer": r[3] / 1e6}
+            for r in rows
+        ],
+        "count": len(rows),
+    }
+
+
 @app.post("/wallet/create", dependencies=[Depends(require_token)])
 def api_wallet_create(req: CreateWalletReq):
     with WRITE_LOCK:
