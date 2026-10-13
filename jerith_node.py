@@ -28,6 +28,10 @@ import jerith_gossip as gossip
 import jerith_validate
 from jerith_validate import validate_block
 import jerith_wallet as sec                    # noqa: E402
+from cryptography.exceptions import InvalidSignature          # noqa: E402
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PublicKey,
+)                                                             # noqa: E402
 
 DATA_DIR = Path(os.environ.get("JERITH_DATA_DIR", BASE_DIR / "data"))
 KEYS_DIR = Path(os.environ.get("JERITH_KEYS_DIR", BASE_DIR / "keys"))
@@ -45,6 +49,11 @@ PASSIVE_SOURCE = "passive"
 EXPLICIT_SOURCE = "explicit"
 PASSIVE_REWARD_UJ = 2 * 1_000_000               # 2 JER per passive block
 
+STAKE_ESCROW_ID = "stake-escrow"                 # node-held escrow wallet
+STAKE_TREASURY_ID = "stake-treasury"             # node-held slashed-funds wallet
+SLASH_STAMP_MAX_AGE_MS = 120_000                 # must mirror signing::STAMP_MAX_AGE_MS
+SLASH_STAMP_MAX_FUTURE_MS = 30_000               # mirror STAMP_MAX_FUTURE_MS
+
 MASTER_KEY = sec.load_or_create_master_key(str(KEYS_DIR))
 API_TOKEN = sec.load_or_create_api_token(str(KEYS_DIR))
 
@@ -53,6 +62,17 @@ conn.execute("PRAGMA journal_mode=WAL")
 conn.execute("PRAGMA synchronous=NORMAL")
 ledger = core.Ledger(conn)
 sec.WalletUser.create_tables(conn)
+conn.execute("""CREATE TABLE IF NOT EXISTS stake_state (
+    discord_id TEXT PRIMARY KEY,
+    staked_uj INTEGER NOT NULL DEFAULT 0,
+    slashed_total_uj INTEGER NOT NULL DEFAULT 0,
+    updated_ts INTEGER NOT NULL DEFAULT 0)""")
+conn.execute("""CREATE TABLE IF NOT EXISTS stake_events (
+    ts INTEGER NOT NULL, kind TEXT NOT NULL, target TEXT NOT NULL,
+    amount_uj INTEGER NOT NULL, detail TEXT NOT NULL DEFAULT '')""")
+conn.execute("CREATE INDEX IF NOT EXISTS idx_stake_events_target ON stake_events(target, ts)")
+conn.execute("CREATE TABLE IF NOT EXISTS seen_slashes (payload_hash TEXT PRIMARY KEY, ts INTEGER NOT NULL)")
+conn.commit()
 
 WRITE_LOCK = threading.RLock()
 AUTH_FAILS: dict[str, list[int]] = {}
@@ -483,6 +503,225 @@ def _auth_gate(user: sec.WalletUser, password: str, totp: str,
         raise HTTPException(status_code=401, detail="invalid 2FA code")
     audit("auth.ok", user.discord_id, f"action={action}")
 
+
+# ------------------------------------------------------------------ stake ---
+# Phase 5 anti-fraud tier: JER escrow with mesh-reported slashing.
+# Wire contract (mirrors jerith-mesh crates/core/src/stake.rs):
+#   POST /stake/lock   {discord_id, amount_jer}    (api token)
+#   POST /stake/unlock {discord_id, amount_jer}    (api token)
+#   GET  /stake?discord_id=...                     (api token)
+#   POST /stake/slash {reporter, target, amount_uj, evidence_digest}
+#        Auth: Ed25519 mesh wire auth (NOT the api token) — x-jerith-pubkey
+#        (64 hex), x-jerith-stamp (ms), x-jerith-sig; the signed payload is
+#        exactly "jerith-slash1|{reporter}|{target}|{amount_uj}|{stamp}",
+#        with the reporter's node_id bound to the pubkey (first 16 hex).
+# Lock/unlock are real on-chain transfers into/from the node-held escrow
+# wallet; slashes move escrow -> treasury on-chain. These are escrow flows
+# (not user transfers), so the daily auto-sign budget does not gate them —
+# evidence is gated by mesh verification upstream instead. Every tx burns
+# the standard FEE_UJ.
+
+def ensure_system_wallet(discord_id: str) -> sec.WalletUser:
+    _user = get_user(discord_id)
+    return _user if _user else create_wallet(discord_id, source="stake-system")
+
+def stake_escrow() -> sec.WalletUser:
+    return ensure_system_wallet(STAKE_ESCROW_ID)
+
+def stake_treasury() -> sec.WalletUser:
+    return ensure_system_wallet(STAKE_TREASURY_ID)
+
+def _escrow_liquidity() -> int:
+    return ledger.balance(stake_escrow().address)
+
+def ensure_escrow_liquidity(required_uj: int) -> None:
+    """The escrow wallet pays the burn fee on its own transfers, so over time
+    its raw balance drops below the (lock - unlock - slash) it logically holds.
+    Unlocks and slashes must still go through, so top it up on-chain from the
+    genesis owner wallet — which is the node operator's wallet anyway.\n\n    Stake accounting (stake_state) is unaffected: only the escrow's fee
+    buffer is refilled, never depositor principal."""
+    required_uj = int(required_uj)
+    have = _escrow_liquidity()
+    if have >= required_uj + FEE_UJ:
+        return
+    owner = ensure_owner_wallet()
+    deficit = required_uj + FEE_UJ - have
+    # Round up to whole JER so we don't drip per-fee top-ups.
+    amount = ((deficit + 1_000_000 - 1) // 1_000_000) * 1_000_000
+    tx = build_transfer(owner, stake_escrow().address, int(amount),
+                        "stake:escrow-liquidity")
+    height, _ = _new_block_with_txs([tx], miner=owner.address)
+    audit("stake.escrow.topup", sec.OWNER_DISCORD_ID,
+          f"amount={amount} height={height} escrow_had={have}")
+
+def _stake_row(discord_id: str) -> tuple[int, int]:
+    row = conn.execute("SELECT staked_uj, slashed_total_uj FROM stake_state "
+                       "WHERE discord_id=?", (discord_id,)).fetchone()
+    return (row[0], row[1]) if row else (0, 0)
+
+def _stake_adj(discord_id: str, staked_delta: int,
+               slashed_delta: int = 0) -> tuple[int, int]:
+    _staked, _slashed = _stake_row(discord_id)
+    _staked = max(0, _staked + staked_delta)
+    _slashed += slashed_delta
+    conn.execute(
+        """INSERT INTO stake_state (discord_id, staked_uj, slashed_total_uj, updated_ts)
+           VALUES (?,?,?,?)
+           ON CONFLICT(discord_id) DO UPDATE SET staked_uj=excluded.staked_uj,
+           slashed_total_uj=excluded.slashed_total_uj, updated_ts=excluded.updated_ts""",
+        (discord_id, _staked, _slashed, int(time.time())))
+    conn.commit()
+    return (_staked, _slashed)
+
+def _stake_event(kind: str, target: str, amount_uj: int, detail: str = "") -> None:
+    conn.execute("INSERT INTO stake_events (ts, kind, target, amount_uj, detail) "
+                 "VALUES (?,?,?,?,?)", (int(time.time()), kind, target,
+                                        amount_uj, detail[:200]))
+    conn.commit()
+
+def _uj(amount_jer: float) -> int:
+    uj = int(round(amount_jer * 1_000_000))
+    if uj <= 0:
+        raise HTTPException(status_code=400, detail="amount must be positive (JER)")
+    return uj
+
+class StakeLockReq(BaseModel):
+    discord_id: str
+    amount_jer: float
+
+class StakeUnlockReq(BaseModel):
+    discord_id: str
+    amount_jer: float
+
+class StakeSlashReq(BaseModel):
+    reporter: str
+    target: str
+    amount_uj: int
+    evidence_digest: str = ""
+
+@app.post("/stake/lock", dependencies=[Depends(require_token)])
+def api_stake_lock(req: StakeLockReq):
+    """Escrow stake: user -> node-held escrow wallet (one on-chain transfer)."""
+    with WRITE_LOCK:
+        user = get_user(req.discord_id.strip())
+        if not user:
+            raise HTTPException(status_code=404, detail="no wallet for that discord id")
+        amount_uj = _uj(req.amount_jer)
+        escrow = stake_escrow()
+        tx = build_transfer(user, escrow.address, amount_uj, "stake:lock")
+        height, bhash = _new_block_with_txs([tx], miner=user.address)
+        staked, _ = _stake_adj(user.discord_id, amount_uj)
+        _stake_event("lock", user.discord_id, amount_uj, f"h{height}")
+        audit("stake.lock", user.discord_id, f"amount={amount_uj} height={height}")
+        return {"ok": True, "staked_uj": staked, "staked_jer": staked / 1e6,
+                "block_height": height, "block_hash": bhash,
+                "fee_jer": FEE_UJ / 1e6, "escrow_address": escrow.address}
+
+@app.post("/stake/unlock", dependencies=[Depends(require_token)])
+def api_stake_unlock(req: StakeUnlockReq):
+    """Return escrowed stake to the user's wallet (idle slashes already applied)."""
+    with WRITE_LOCK:
+        user = get_user(req.discord_id.strip())
+        if not user:
+            raise HTTPException(status_code=404, detail="no wallet for that discord id")
+        amount_uj = _uj(req.amount_jer)
+        staked, _slashed = _stake_row(user.discord_id)
+        if amount_uj > staked:
+            raise HTTPException(status_code=409,
+                                detail=f"insufficient stake: {staked} uj escrowed")
+        escrow = stake_escrow()
+        ensure_escrow_liquidity(amount_uj)
+        tx = build_transfer(escrow, user.address, amount_uj, "stake:unlock")
+        height, bhash = _new_block_with_txs([tx], miner=escrow.address)
+        staked, _ = _stake_adj(user.discord_id, -amount_uj)
+        _stake_event("unlock", user.discord_id, amount_uj, f"h{height}")
+        audit("stake.unlock", user.discord_id, f"amount={amount_uj} height={height}")
+        return {"ok": True, "staked_uj": staked, "staked_jer": staked / 1e6,
+                "block_height": height, "block_hash": bhash}
+
+@app.get("/stake", dependencies=[Depends(require_token)])
+def api_stake(discord_id: str):
+    """Read-only escrow view: stake totals + recent events per identity."""
+    user = get_user(discord_id.strip())
+    if not user:
+        raise HTTPException(status_code=404, detail="no wallet for that discord id")
+    staked, slashed = _stake_row(user.discord_id)
+    events = [
+        {"ts": r[0], "kind": r[1], "amount_uj": r[2], "detail": r[3]}
+        for r in conn.execute("SELECT ts, kind, amount_uj, detail FROM stake_events "
+                              "WHERE target=? ORDER BY ts DESC LIMIT 10",
+                              (user.discord_id,)).fetchall()
+    ]
+    return {"discord_id": user.discord_id, "address": user.address,
+            "staked_uj": staked, "staked_jer": staked / 1e6,
+            "slashed_total_uj": slashed, "events": events,
+            "escrow_address": stake_escrow().address,
+            "fee_jer": FEE_UJ / 1e6}
+
+def _slash_auth_ok(req: StakeSlashReq,
+                   x_pubkey: str, x_stamp: str, x_sig: str) -> bool:
+    """Ed25519 mesh wire auth over the canonical stake.rs payload."""
+    try:
+        if len(x_pubkey) != 64 or len(x_stamp) == 0 or len(x_sig) == 0:
+            return False
+        stamp_ms = int(x_stamp)
+        now_ms = int(time.time() * 1000)
+        if now_ms - stamp_ms > SLASH_STAMP_MAX_AGE_MS:
+            return False
+        if stamp_ms > now_ms + SLASH_STAMP_MAX_FUTURE_MS:
+            return False
+        # node_id binding mirrors signing::SigningIdentity: first 16 hex of pubkey.
+        if req.reporter != x_pubkey[:16]:
+            return False
+        if req.reporter == req.target:
+            return False
+        payload = (f"jerith-slash1|{req.reporter}|{req.target}|"
+                   f"{req.amount_uj}|{stamp_ms}")
+        Ed25519PublicKey.from_public_bytes(bytes.fromhex(x_pubkey)).verify(
+            bytes.fromhex(x_sig), payload.encode())
+        return True
+    except (ValueError, InvalidSignature):
+        return False
+
+@app.post("/stake/slash")
+def api_stake_slash(req: StakeSlashReq,
+                    x_jerith_pubkey: str = Header(default=""),
+                    x_jerith_stamp: str = Header(default=""),
+                    x_jerith_sig: str = Header(default="")):
+    """Apply a mesh-verified slash: escrow -> treasury, seen-once."""
+    if not _slash_auth_ok(req, x_jerith_pubkey, x_jerith_stamp, x_jerith_sig):
+        audit("stake.slash.reject", req.target,
+              f"reporter={req.reporter} bad signature or stamp")
+        raise HTTPException(status_code=401, detail="slash evidence invalid")
+    with WRITE_LOCK:
+        target = get_user(req.target.strip())
+        if not target:
+            raise HTTPException(status_code=404, detail="no wallet for that target")
+        staked, slashed_total = _stake_row(target.discord_id)
+        amount = min(max(0, int(req.amount_uj)), staked)
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="nothing slashable")
+        replay = conn.execute(
+            "INSERT OR IGNORE INTO seen_slashes (payload_hash, ts) VALUES (?,?)",
+            (f"{req.reporter}|{target.discord_id}|{amount}|{int(x_jerith_stamp)}",
+             int(time.time())))
+        if replay.rowcount == 0:
+            raise HTTPException(status_code=409, detail="slash evidence already applied")
+        conn.commit()
+        escrow = stake_escrow()
+        treasury = stake_treasury()
+        ensure_escrow_liquidity(amount)
+        tx = build_transfer(escrow, treasury.address, amount,
+                            f"stake:slash by {req.reporter}")
+        height, bhash = _new_block_with_txs([tx], miner=escrow.address)
+        _staked, _slashed = _stake_adj(target.discord_id, -amount, amount)
+        _stake_event("slash", target.discord_id, amount,
+                     f"reporter={req.reporter} h{height} digest={req.evidence_digest[:64]}")
+        audit("stake.slash", target.discord_id,
+              f"amount={amount} reporter={req.reporter} height={height}")
+        return {"ok": True, "slashed_uj": amount, "staked_uj": _staked,
+                "slashed_total_uj": _slashed, "block_height": height,
+                "block_hash": bhash}
 
 # ------------------------------------------------------------------- routes --
 @app.post("/mine", dependencies=[Depends(require_token)])
